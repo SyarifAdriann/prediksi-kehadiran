@@ -1,0 +1,38 @@
+# ── Thesis private document ──────────────────────────────────
+tambahanskripsi.md
+
+# ── Raw / source data (PT CLN internal files) ────────────────
+data/raw/
+
+# ── Python cache ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ──────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Jupyter ───────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── Streamlit ─────────────────────────────────────────────────
+.streamlit/
+
+# ── Temporary / scratch files ─────────────────────────────────
+scripts/_*_temp.py
+*.log

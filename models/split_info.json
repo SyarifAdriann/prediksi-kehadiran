@@ -1,0 +1,19 @@
+{
+  "test_size": 0.2,
+  "random_seed": 42,
+  "feature_cols": [
+    "Jenis_Kelamin",
+    "Usia",
+    "Jarak_km",
+    "Status_Pendaftaran",
+    "Event_ID",
+    "hadir_event_sebelumnya"
+  ],
+  "target_col": "Status_Kehadiran",
+  "n_train": 240,
+  "n_test": 60,
+  "train_hadir": 189,
+  "train_tidak_hadir": 51,
+  "test_hadir": 47,
+  "test_tidak_hadir": 13
+}
