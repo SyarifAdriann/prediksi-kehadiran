@@ -43,6 +43,10 @@ IMG_FI = os.path.join(ROOT, "outputs", "feature_importance.png")
 IMG_DK   = os.path.join(ROOT, "outputs", "distribusi_kehadiran.png")
 LOGO_PATH = os.path.join(ROOT, "logo.png")
 
+# Detect environment: local machine vs Streamlit Cloud (/mount/src only exists on Cloud)
+IS_LOCAL = not os.path.exists('/mount/src')
+LOG_JSON = os.path.join(ROOT, "pred_log.json")
+
 FEATURE_COLS = [
     "Jenis_Kelamin", "Usia", "Jarak_km",
     "Status_Pendaftaran", "Event_ID", "hadir_event_sebelumnya",
@@ -469,6 +473,27 @@ def load_metrics():
         return json.load(f)
 
 
+def _load_log_from_disk():
+    """Load persisted prediction log from disk. Localhost only."""
+    if IS_LOCAL and os.path.exists(LOG_JSON):
+        try:
+            with open(LOG_JSON, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+
+def _save_log_to_disk(log):
+    """Write prediction log to disk. Localhost only — silently skipped on Cloud."""
+    if IS_LOCAL:
+        try:
+            with open(LOG_JSON, "w", encoding="utf-8") as f:
+                json.dump(log, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+
 # ============================================================
 # SIDEBAR
 # ============================================================
@@ -527,7 +552,8 @@ tab_pred, tab_dash, tab_eval, tab_log = st.tabs(["Prediksi Kehadiran", "Dashboar
 
 # Ã¢â€â‚¬Ã¢â€â‚¬ Session state init Ã¢â€â‚¬Ã¢â€â‚¬
 if "pred_log" not in st.session_state:
-    st.session_state["pred_log"] = []
+    # On localhost: restore from disk so log survives app restarts
+    st.session_state["pred_log"] = _load_log_from_disk()
 
 # ============================================================
 # TAB DASHBOARD
@@ -825,6 +851,7 @@ with tab_pred:
                 "Prob. Hadir (%)": round(float(prob_val[1]) * 100, 1),
                 "Prob. Tidak Hadir (%)": round(float(prob_val[0]) * 100, 1),
             })
+            _save_log_to_disk(st.session_state["pred_log"])
             st.rerun()
 
         # ---- Full-width Insight Panel (below both columns) ----
@@ -1396,7 +1423,10 @@ with tab_eval:
 # TAB 4 Ã¢â‚¬â€ LOG PREDIKSI
 # ============================================================
 with tab_log:
-    st.markdown('<div class="section-header">Log Prediksi Sesi Ini</div>', unsafe_allow_html=True)
+    header_title = "Log Prediksi" if IS_LOCAL else "Log Prediksi Sesi Ini"
+    st.markdown(f'<div class="section-header">{header_title}</div>', unsafe_allow_html=True)
+    if IS_LOCAL:
+        st.markdown("<p style='color:#4a6fa5;font-size:15px;'>Log tersimpan secara permanen di mesin ini dan akan tetap ada setelah aplikasi di-restart.</p>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
     log = st.session_state.get("pred_log", [])
@@ -1437,4 +1467,5 @@ with tab_log:
         with col_clr:
             if st.button("Hapus Log", use_container_width=True):
                 st.session_state["pred_log"] = []
+                _save_log_to_disk([])  # clear disk file on localhost too
                 st.rerun()
