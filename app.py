@@ -1,5 +1,5 @@
 """
-app.py — Aplikasi Streamlit: Prediksi Kehadiran Anggota
+app.py Ã¢â‚¬â€ Aplikasi Streamlit: Prediksi Kehadiran Anggota
 PT Cahaya Ladara Nusantara
 
 Jalankan dari root folder skripsi/:
@@ -10,7 +10,9 @@ import os
 import io
 import json
 import math
+import base64
 import joblib
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -24,7 +26,7 @@ from fpdf import FPDF
 # ============================================================
 st.set_page_config(
     page_title="Prediksi Kehadiran Anggota | PT CLN",
-    page_icon="📋",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -38,7 +40,8 @@ MODEL_PKL = os.path.join(ROOT, "models", "random_forest_model.pkl")
 METRICS_JSON = os.path.join(ROOT, "outputs", "metrics_summary.json")
 IMG_CM = os.path.join(ROOT, "outputs", "confusion_matrix.png")
 IMG_FI = os.path.join(ROOT, "outputs", "feature_importance.png")
-IMG_DK = os.path.join(ROOT, "outputs", "distribusi_kehadiran.png")
+IMG_DK   = os.path.join(ROOT, "outputs", "distribusi_kehadiran.png")
+LOGO_PATH = os.path.join(ROOT, "logo.png")
 
 FEATURE_COLS = [
     "Jenis_Kelamin", "Usia", "Jarak_km",
@@ -46,230 +49,401 @@ FEATURE_COLS = [
 ]
 
 # ============================================================
-# CSS — MONOCHROME CLEAN
+# CSS Ã¢â‚¬â€ MONOCHROME CLEAN
 # ============================================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ── Base ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Base Ã¢â€â‚¬Ã¢â€â‚¬ */
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 18px;
 }
 
-/* ── Background ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Background Ã¢â€â‚¬Ã¢â€â‚¬ */
 .stApp {
-    background-color: #f9f9f9;
+    background-color: #eef1f8;
+    background-image: radial-gradient(#c8d5e8 1px, transparent 1px);
+    background-size: 28px 28px;
 }
 
-/* ── Sidebar ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Main block padding Ã¢â€â‚¬Ã¢â€â‚¬ */
+.main .block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar Ã¢â€â‚¬Ã¢â€â‚¬ */
 [data-testid="stSidebar"] {
-    background-color: #111111;
+    background-color: #0f2040;
     color: #ffffff;
+    border-right: 1px solid rgba(255,255,255,0.06);
 }
 [data-testid="stSidebar"] * {
-    color: #cccccc !important;
-    font-size: 15px !important;
+    color: #c8d5e8 !important;
+    font-size: 13px !important;
 }
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3 {
     color: #ffffff !important;
-    font-size: 18px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
 }
 
-/* ── Tab bar ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Lock sidebar permanent Ã¢â€â‚¬Ã¢â€â‚¬ */
+[data-testid="stSidebarCollapseButton"],
+button[title="Close sidebar"],
+button[aria-label="Close sidebar"] {
+    display: none !important;
+}
+section[data-testid="stSidebar"] {
+    transform: none !important;
+    visibility: visible !important;
+    overflow: hidden !important;
+}
+section[data-testid="stSidebar"] > div:first-child {
+    overflow-y: hidden !important;
+    padding: 0 !important;
+}
+section[data-testid="stSidebar"][aria-expanded="false"] {
+    display: flex !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    min-width: 244px !important;
+    visibility: visible !important;
+}
+
+
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar logo Ã¢â€â‚¬Ã¢â€â‚¬ */
+.sidebar-logo {
+    padding: 16px 16px 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    text-align: center;
+}
+.sidebar-logo img {
+    width: 75%;
+    height: auto;
+    display: inline-block;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar sections Ã¢â€â‚¬Ã¢â€â‚¬ */
+.sidebar-section {
+    padding: 13px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.sidebar-label {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #3d6491 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+.sidebar-title {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    margin-bottom: 2px;
+    letter-spacing: 0.2px;
+}
+.sidebar-sub {
+    font-size: 12px !important;
+    color: #6a94be !important;
+}
+.sidebar-metric {
+    font-size: 34px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    line-height: 1;
+    letter-spacing: -1px;
+}
+.sidebar-info {
+    font-size: 13px !important;
+    color: #c8d5e8 !important;
+    line-height: 1.85;
+}
+
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tab bar Ã¢â‚¬â€œ pill style Ã¢â€â‚¬Ã¢â€â‚¬ */
 [data-baseweb="tab-list"] {
-    gap: 8px;
-    border-bottom: 2px solid #e0e0e0;
+    gap: 6px;
+    background: #dde4f0;
+    border: none;
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 20px;
 }
 [data-baseweb="tab"] {
     background: transparent;
     border: none;
-    color: #888888;
-    font-weight: 500;
+    border-radius: 8px;
+    color: #6b7fa0;
+    font-weight: 600;
     padding: 10px 22px;
-    font-size: 16px;
+    font-size: 16px !important;
+    transition: all 0.2s ease;
+}
+[data-baseweb="tab"]:hover {
+    background: rgba(255,255,255,0.5);
+    color: #0f2040;
 }
 [aria-selected="true"] {
-    color: #111111 !important;
-    border-bottom: 2px solid #111111 !important;
-    background: transparent !important;
+    background: #0f2040 !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 10px rgba(15,32,64,0.3) !important;
+    border-radius: 8px !important;
+}
+[aria-selected="true"] p,
+[aria-selected="true"] span,
+[aria-selected="true"] div,
+[aria-selected="true"] * {
+    color: #ffffff !important;
+}
+[data-baseweb="tab-highlight"] {
+    display: none !important;
+}
+[data-baseweb="tab-border"] {
+    display: none !important;
 }
 
-/* ── Metric cards ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Metric cards Ã¢â€â‚¬Ã¢â€â‚¬ */
 [data-testid="metric-container"] {
     background: #ffffff;
-    border: 1px solid #e8e8e8;
-    border-radius: 8px;
-    padding: 18px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: none;
+    border-radius: 12px;
+    border-top: 3px solid #2563a8;
+    padding: 20px 22px 18px 22px;
+    box-shadow: 0 2px 12px rgba(15,32,64,0.08);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+[data-testid="metric-container"]:hover {
+    box-shadow: 0 6px 24px rgba(15,32,64,0.14);
+    transform: translateY(-2px);
 }
 [data-testid="metric-container"] [data-testid="stMetricLabel"] {
-    font-size: 14px !important;
-    color: #666666;
-    font-weight: 600;
+    font-size: 13px !important;
+    color: #4a6fa5 !important;
+    font-weight: 700 !important;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.6px;
 }
 [data-testid="metric-container"] [data-testid="stMetricValue"] {
-    font-size: 32px !important;
-    font-weight: 700;
-    color: #111111;
+    font-size: 36px !important;
+    font-weight: 800 !important;
+    color: #0f2040 !important;
 }
 
-/* ── Form / widget labels ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Form / widget labels Ã¢â€â‚¬Ã¢â€â‚¬ */
 [data-testid="stWidgetLabel"],
 label[data-testid="stWidgetLabel"] p,
 .stSelectbox label,
 .stNumberInput label,
 .stRadio label,
 .stCheckbox label {
-    font-size: 15px !important;
-    font-weight: 600 !important;
-    color: #222222 !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #0f2040 !important;
     margin-bottom: 4px !important;
 }
-/* Selectbox and input text */
 div[data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
 div[data-baseweb="input"] input {
-    font-size: 15px !important;
+    font-size: 17px !important;
 }
 
-/* ── Buttons ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Buttons Ã¢â€â‚¬Ã¢â€â‚¬ */
 .stButton > button {
-    background-color: #111111;
-    color: #ffffff;
+    background: #0f2040;
+    color: #ffffff !important;
     border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 15px;
-    padding: 10px 22px;
-    transition: background 0.2s;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 17px;
+    padding: 12px 28px;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 10px rgba(15,32,64,0.22);
+    letter-spacing: 0.2px;
+}
+.stButton > button *,
+.stButton > button p,
+.stButton > button span {
+    color: #ffffff !important;
 }
 .stButton > button:hover {
-    background-color: #333333;
-    color: #ffffff;
+    background: #1a3360;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15,32,64,0.32);
+    color: #ffffff !important;
+}
+.stButton > button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(15,32,64,0.2);
 }
 
-/* ── Download button ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Download button Ã¢â€â‚¬Ã¢â€â‚¬ */
 .stDownloadButton > button {
-    background-color: #ffffff;
-    color: #111111;
-    border: 1px solid #cccccc;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 15px;
+    background: #ffffff;
+    color: #0f2040;
+    border: 2px solid #0f2040;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 17px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(15,32,64,0.08);
 }
 .stDownloadButton > button:hover {
-    background-color: #f0f0f0;
+    background: #eef1f8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15,32,64,0.15);
 }
 
-/* ── Prediksi result boxes ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Prediksi result boxes Ã¢â€â‚¬Ã¢â€â‚¬ */
 .result-hadir {
-    background: #111111;
+    background: linear-gradient(135deg, #0a1828 0%, #0f2040 50%, #163566 100%);
     color: #ffffff;
-    border-radius: 10px;
-    padding: 26px;
+    border-radius: 12px;
+    padding: 32px 30px;
     text-align: center;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 2px;
     margin: 16px 0;
+    box-shadow: 0 8px 32px rgba(15,32,64,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 .result-tidak-hadir {
     background: #ffffff;
-    color: #111111;
-    border: 2px solid #111111;
-    border-radius: 10px;
-    padding: 26px;
+    color: #0f2040;
+    border: 2px solid #0f2040;
+    border-radius: 12px;
+    padding: 32px 30px;
     text-align: center;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 2px;
     margin: 16px 0;
+    box-shadow: 0 4px 16px rgba(15,32,64,0.1);
 }
 
-/* ── Section header ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Section header Ã¢â€â‚¬Ã¢â€â‚¬ */
 .section-header {
     font-size: 26px;
-    font-weight: 700;
-    color: #111111;
-    margin-bottom: 4px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e8e8e8;
+    font-weight: 800;
+    color: #0f2040;
+    margin-bottom: 16px;
+    padding-left: 14px;
+    border-left: 4px solid #2563a8;
+    line-height: 1.2;
 }
 
-/* ── Info box ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Info box Ã¢â€â‚¬Ã¢â€â‚¬ */
 .info-box {
     background: #ffffff;
-    border: 1px solid #e8e8e8;
-    border-radius: 8px;
+    border: none;
+    border-left: 4px solid #c8d5e8;
+    border-radius: 0 8px 8px 0;
     padding: 18px 22px;
     margin: 8px 0;
-    font-size: 15px;
-    color: #333333;
-    line-height: 1.65;
+    font-size: 16px;
+    color: #1e2d4a;
+    line-height: 1.75;
+    box-shadow: 0 2px 8px rgba(15,32,64,0.05);
+    transition: border-color 0.2s ease;
+}
+.info-box:hover {
+    border-left-color: #2563a8;
 }
 
-/* ── Metric table ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Metric table Ã¢â€â‚¬Ã¢â€â‚¬ */
 .metric-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 15px;
+    font-size: 16px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(15,32,64,0.08);
 }
 .metric-table th {
-    background: #111111;
+    background: #0f2040;
     color: #ffffff;
-    padding: 12px 16px;
+    padding: 14px 18px;
     text-align: left;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.3px;
 }
 .metric-table td {
-    padding: 11px 16px;
-    border-bottom: 1px solid #f0f0f0;
-    color: #333333;
-    font-size: 14px;
+    padding: 13px 18px;
+    border-bottom: 1px solid #eef1f8;
+    color: #1e2d4a;
+    font-size: 15px;
     line-height: 1.5;
+    background: #ffffff;
 }
 .metric-table tr:nth-child(even) td {
-    background: #f8f8f8;
+    background: #f5f7fc;
+}
+.metric-table tr:hover td {
+    background: #edf2fc;
 }
 
-/* ── General markdown / paragraph text ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ General markdown / paragraph text Ã¢â€â‚¬Ã¢â€â‚¬ */
 [data-testid="stMarkdownContainer"] p,
 [data-testid="stMarkdownContainer"] li,
 [data-testid="stMarkdownContainer"] span {
-    font-size: 15px;
-    line-height: 1.65;
+    font-size: 16px;
+    line-height: 1.75;
+    color: #1e2d4a;
 }
 [data-testid="stMarkdownContainer"] b,
 [data-testid="stMarkdownContainer"] strong {
     font-weight: 700;
+    color: #0f2040;
 }
 
-/* ── Hide streamlit branding ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Hide streamlit branding Ã¢â€â‚¬Ã¢â€â‚¬ */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
-/* ── Input widget visible borders ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Input widget styling Ã¢â€â‚¬Ã¢â€â‚¬ */
 div[data-baseweb="select"] > div {
-    border: 1.5px solid #cccccc !important;
-    border-radius: 6px !important;
+    border: 2px solid #c8d5e8 !important;
+    border-radius: 8px !important;
     background-color: #ffffff !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 div[data-baseweb="input"] > div {
-    border: 1.5px solid #cccccc !important;
-    border-radius: 6px !important;
+    border: 2px solid #c8d5e8 !important;
+    border-radius: 8px !important;
     background-color: #ffffff !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 div[data-baseweb="select"]:focus-within > div,
 div[data-baseweb="input"]:focus-within > div {
-    border: 1.5px solid #111111 !important;
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.07) !important;
+    border: 2px solid #2563a8 !important;
+    box-shadow: 0 0 0 3px rgba(37,99,168,0.15) !important;
+}
+
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Expander Ã¢â€â‚¬Ã¢â€â‚¬ */
+[data-testid="stExpander"] {
+    background: #ffffff;
+    border: 1px solid #dde4f0 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(15,32,64,0.05);
+    overflow: hidden;
+}
+
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Plotly/chart container Ã¢â€â‚¬Ã¢â€â‚¬ */
+[data-testid="stPlotlyChart"] {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 2px 10px rgba(15,32,64,0.07);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -299,44 +473,61 @@ def load_metrics():
 # SIDEBAR
 # ============================================================
 with st.sidebar:
-    st.markdown("## 📋 Prediksi Kehadiran")
-    st.markdown("**PT Cahaya Ladara Nusantara**")
-    st.markdown("---")
-    st.markdown("""
-**Navigasi Tab:**
-- 🔮 &nbsp;Prediksi Kehadiran
-- 📊 &nbsp;Dashboard
-- 📈 &nbsp;Evaluasi Model
-""")
-    st.markdown("---")
-    st.markdown("""
-<div style="font-size:12px; color:#888;">
-Pelatihan Makanan Viral<br>
-Sushi & Onigiri<br>
-Event 1: 09 November 2025<br>
-Event 2: 16 November 2025
-</div>
-""", unsafe_allow_html=True)
-    st.markdown("---")
+    if os.path.exists(LOGO_PATH):
+        with open(LOGO_PATH, "rb") as _lf:
+            _logo_b64 = base64.b64encode(_lf.read()).decode()
+        st.markdown(
+            '<div class="sidebar-logo">'
+            f'<img src="data:image/png;base64,{_logo_b64}" />'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
     try:
-        m = load_metrics()
-        st.markdown(f"<div style='font-size:12px;color:#888;'>Model Accuracy<br><b style='font-size:22px;color:#fff;'>{m['accuracy_pct']:.1f}%</b></div>", unsafe_allow_html=True)
+        _acc = f"{load_metrics()['accuracy_pct']:.1f}%"
     except Exception:
-        pass
+        _acc = "N/A"
+
+    st.markdown(f"""
+    <div>
+        <div class="sidebar-section">
+            <div class="sidebar-title">Prediksi Kehadiran</div>
+            <div class="sidebar-sub">PT Cahaya Ladara Nusantara</div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-label">Akurasi Model</div>
+            <div class="sidebar-metric">{_acc}</div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-label">Pelatihan</div>
+            <div class="sidebar-info">Makanan Viral<br>Sushi &amp; Onigiri</div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-label">Jadwal Event</div>
+            <div class="sidebar-info">
+                Event 1 &nbsp;&nbsp; 09 Nov 2025<br>
+                Event 2 &nbsp;&nbsp; 16 Nov 2025
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ============================================================
 # JUDUL
 # ============================================================
-st.markdown("# Sistem Prediksi Kehadiran Anggota")
-st.markdown(
-    "<p style='color:#666;font-size:14px;margin-top:-12px;'>"
-    "Algoritma Random Forest — Data Riwayat Pelatihan Sushi & Onigiri, PT Cahaya Ladara Nusantara"
-    "</p>",
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div style="background:#0f2040;border-radius:12px;padding:28px 36px 24px 36px;margin-bottom:16px;">
+  <div style="font-size:28px;font-weight:800;color:#ffffff;margin-bottom:8px;">Sistem Prediksi Kehadiran Anggota</div>
+  <div style="font-size:17px;color:#c8d5e8;font-weight:500;">Algoritma Random Forest, Pelatihan Sushi &amp; Onigiri &nbsp;|&nbsp; PT Cahaya Ladara Nusantara</div>
+</div>
+""", unsafe_allow_html=True)
 
-tab_pred, tab_dash, tab_eval = st.tabs(["🔮  Prediksi Kehadiran", "📊  Dashboard", "📈  Evaluasi Model"])
+tab_pred, tab_dash, tab_eval, tab_log = st.tabs(["Prediksi Kehadiran", "Dashboard", "Evaluasi Model", "Log Prediksi"])
+
+# Ã¢â€â‚¬Ã¢â€â‚¬ Session state init Ã¢â€â‚¬Ã¢â€â‚¬
+if "pred_log" not in st.session_state:
+    st.session_state["pred_log"] = []
 
 # ============================================================
 # TAB DASHBOARD
@@ -381,12 +572,12 @@ with tab_dash:
             fig_ev = go.Figure()
             fig_ev.add_trace(go.Bar(
                 name="Hadir", x=ev_labels, y=hadir_vals,
-                marker_color="#1a1a1a", text=hadir_vals,
+                marker_color="#0f2040", text=hadir_vals,
                 textposition="outside"
             ))
             fig_ev.add_trace(go.Bar(
                 name="Tidak Hadir", x=ev_labels, y=tidak_vals,
-                marker_color="#cccccc", text=tidak_vals,
+                marker_color="#6b9ed4", text=tidak_vals,
                 textposition="outside"
             ))
             fig_ev.update_layout(
@@ -407,7 +598,7 @@ with tab_dash:
                 labels=jk_counts.index.tolist(),
                 values=jk_counts.values.tolist(),
                 hole=0.5,
-                marker=dict(colors=["#1a1a1a", "#aaaaaa"]),
+                marker=dict(colors=["#0f2040", "#6b9ed4"]),
                 textinfo="label+percent",
                 textfont=dict(size=13),
             ))
@@ -428,13 +619,13 @@ with tab_dash:
             fig_usia = go.Figure()
             fig_usia.add_trace(go.Histogram(
                 x=df["Usia"], nbinsx=15,
-                marker_color="#555555", marker_line_color="#ffffff",
+                marker_color="#1a3360", marker_line_color="#ffffff",
                 marker_line_width=1,
                 name="Usia"
             ))
             fig_usia.add_vline(
                 x=df["Usia"].mean(), line_dash="dash",
-                line_color="#111111", line_width=2,
+                line_color="#0f2040", line_width=2,
                 annotation_text=f"Rata-rata: {df['Usia'].mean():.1f}",
                 annotation_position="top right",
             )
@@ -454,13 +645,13 @@ with tab_dash:
             fig_jarak = go.Figure()
             fig_jarak.add_trace(go.Histogram(
                 x=jarak_plot, nbinsx=20,
-                marker_color="#555555", marker_line_color="#ffffff",
+                marker_color="#1a3360", marker_line_color="#ffffff",
                 marker_line_width=1,
                 name="Jarak"
             ))
             fig_jarak.add_vline(
                 x=df["Jarak_km"].median(), line_dash="dash",
-                line_color="#111111", line_width=2,
+                line_color="#0f2040", line_width=2,
                 annotation_text=f"Median: {df['Jarak_km'].median():.1f} km",
                 annotation_position="top right",
             )
@@ -508,7 +699,7 @@ with tab_dash:
 with tab_pred:
     st.markdown('<div class="section-header">Prediksi Kehadiran Peserta Baru</div>', unsafe_allow_html=True)
     st.markdown(
-        "<p style='color:#666;font-size:13px;'>Masukkan data peserta untuk mendapatkan prediksi kehadiran beserta analisis faktor yang memengaruhinya.</p>",
+        "<p style='color:#4a6fa5;font-size:17px;font-weight:600;'>Masukkan data peserta untuk mendapatkan prediksi kehadiran beserta analisis faktor yang memengaruhinya.</p>",
         unsafe_allow_html=True
     )
 
@@ -523,11 +714,8 @@ with tab_pred:
         col_form, col_result = st.columns([5, 5], gap="large")
 
         with col_form:
-            st.markdown(
-                "<div style='background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:10px;padding:20px 20px 8px 20px;'>",
-                unsafe_allow_html=True
-            )
-            st.markdown("**📋 Data Peserta**")
+
+            st.markdown("**Data Peserta**")
             jk = st.selectbox("Jenis Kelamin", options=["Perempuan", "Laki-Laki"], key="pred_jk")
             usia = st.number_input(
                 "Usia (tahun)", min_value=18, max_value=75, value=40, step=1, key="pred_usia"
@@ -538,29 +726,29 @@ with tab_pred:
             )
             event = st.selectbox(
                 "Event",
-                options=["Event 1 \u2014 09 November 2025", "Event 2 \u2014 16 November 2025"],
+                options=["Event 1 - 09 November 2025", "Event 2 - 16 November 2025"],
                 key="pred_event"
             )
             hadir_sblm_opt = st.selectbox(
                 "Hadir di Event Sebelumnya?",
-                options=["Tidak Relevan / Event Pertama", "Ya \u2014 Hadir", "Tidak \u2014 Tidak Hadir"],
+                options=["Tidak Relevan / Event Pertama", "Ya, Pernah Hadir", "Tidak, Belum Pernah Hadir"],
                 key="pred_hsblm"
             )
-            st.markdown("</div>", unsafe_allow_html=True)
+
             st.markdown("<br>", unsafe_allow_html=True)
-            predict_btn = st.button("\U0001f52e Prediksi Sekarang", use_container_width=True)
+            predict_btn = st.button("Prediksi Sekarang", use_container_width=True)
 
         with col_result:
             p = st.session_state.get('pred_data')
             if p:
                 if p['pred'] == 1:
                     st.markdown(
-                        '<div class="result-hadir">\u2713 DIPREDIKSI HADIR</div>',
+                        '<div class="result-hadir">Ã¢Å“â€œ DIPREDIKSI HADIR</div>',
                         unsafe_allow_html=True
                     )
                 else:
                     st.markdown(
-                        '<div class="result-tidak-hadir">\u2717 DIPREDIKSI TIDAK HADIR</div>',
+                        '<div class="result-tidak-hadir">Ã¢Å“â€” DIPREDIKSI TIDAK HADIR</div>',
                         unsafe_allow_html=True
                     )
 
@@ -575,7 +763,7 @@ with tab_pred:
                 fig_prob = go.Figure(go.Bar(
                     x=["Tidak Hadir", "Hadir"],
                     y=[p['prob_tidak'] * 100, p['prob_hadir'] * 100],
-                    marker_color=["#cccccc", "#1a1a1a"],
+                    marker_color=["#6b9ed4", "#0f2040"],
                     text=[f"{p['prob_tidak']*100:.1f}%", f"{p['prob_hadir']*100:.1f}%"],
                     textposition="outside",
                 ))
@@ -590,9 +778,11 @@ with tab_pred:
                 st.plotly_chart(fig_prob, use_container_width=True)
             else:
                 st.markdown("""
-                <div class="info-box" style="text-align:center;padding:60px 20px;color:#999;min-height:300px;">
-                <div style="font-size:40px;margin-bottom:12px;">&#128302;</div>
-                Isi form di sebelah kiri<br>dan klik <b style="color:#333;">Prediksi Sekarang</b><br>untuk melihat hasil prediksi.
+                <div class="info-box" style="text-align:center;padding:60px 20px;min-height:300px;">
+                <div style="font-size:20px;font-weight:800;color:#0f2040;margin-bottom:14px;letter-spacing:1px;">SIAP BERPREDIKSI</div>
+                <div style="font-size:17px;color:#4a6fa5;line-height:1.9;">
+                Isi form di sebelah kiri<br>dan klik <b style="color:#0f2040;">Prediksi Sekarang</b><br>untuk melihat hasil prediksi.
+                </div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -601,7 +791,7 @@ with tab_pred:
             jk_enc    = 0 if jk == "Perempuan" else 1
             sp_enc    = 1
             event_enc = 1 if "Event 1" in event else 2
-            hsblm_enc = 1 if hadir_sblm_opt == "Ya \u2014 Hadir" else 0
+            hsblm_enc = 1 if hadir_sblm_opt == "Ya, Pernah Hadir" else 0
 
             X_input = pd.DataFrame([{
                 "Jenis_Kelamin": jk_enc,
@@ -624,6 +814,17 @@ with tab_pred:
                 'hadir_sblm_opt': hadir_sblm_opt,
                 'hsblm_enc': hsblm_enc,
             }
+            st.session_state["pred_log"].append({
+                "Waktu": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "Event": event,
+                "Jenis Kelamin": jk,
+                "Usia": usia,
+                "Jarak (km)": round(jarak, 1),
+                "Hadir Sebelumnya": hadir_sblm_opt,
+                "Prediksi": "Hadir" if pred_val == 1 else "Tidak Hadir",
+                "Prob. Hadir (%)": round(float(prob_val[1]) * 100, 1),
+                "Prob. Tidak Hadir (%)": round(float(prob_val[0]) * 100, 1),
+            })
             st.rerun()
 
         # ---- Full-width Insight Panel (below both columns) ----
@@ -653,31 +854,31 @@ with tab_pred:
 
             def jarak_insight(km):
                 if km <= 3:
-                    return "\u2705", "Sangat dekat", f"{km:.1f} km - di bawah median dataset ({MEDIAN_JARAK:.1f} km). Sangat mendukung kehadiran."
+                    return "BAIK", "Sangat dekat", f"{km:.1f} km, di bawah median dataset ({MEDIAN_JARAK:.1f} km). Sangat mendukung kehadiran."
                 elif km <= 7:
-                    return "\u2705", "Dekat", f"{km:.1f} km - di bawah rata-rata dataset ({MEAN_JARAK:.1f} km). Mendukung kehadiran."
+                    return "BAIK", "Dekat", f"{km:.1f} km, di bawah rata-rata dataset ({MEAN_JARAK:.1f} km). Mendukung kehadiran."
                 elif km <= 15:
-                    return "\u26a0\ufe0f", "Di atas rata-rata", f"{km:.1f} km - di atas rata-rata ({MEAN_JARAK:.1f} km). Berpotensi mengurangi motivasi hadir."
+                    return "PERHATIAN", "Di atas rata-rata", f"{km:.1f} km, di atas rata-rata ({MEAN_JARAK:.1f} km). Berpotensi mengurangi motivasi hadir."
                 else:
-                    return "\u26a0\ufe0f", "Jauh", f"{km:.1f} km - jauh di atas rata-rata ({MEAN_JARAK:.1f} km). Faktor risiko dominan (47.73%)."
+                    return "PERHATIAN", "Jauh", f"{km:.1f} km, jauh di atas rata-rata ({MEAN_JARAK:.1f} km). Faktor risiko dominan (47.73%)."
 
             def usia_insight(u):
                 if u < 35:
-                    return "\u2705", "Di bawah rata-rata", f"{u} tahun - lebih muda dari rata-rata ({MEAN_USIA:.1f} thn). Cenderung lebih hadir."
+                    return "BAIK", "Di bawah rata-rata", f"{u} tahun, lebih muda dari rata-rata ({MEAN_USIA:.1f} thn). Cenderung lebih hadir."
                 elif u <= 52:
-                    return "\u2705", "Sekitar rata-rata", f"{u} tahun - mendekati rata-rata ({MEAN_USIA:.1f} thn). Tidak menjadi faktor risiko."
+                    return "BAIK", "Sekitar rata-rata", f"{u} tahun, mendekati rata-rata ({MEAN_USIA:.1f} thn). Tidak menjadi faktor risiko."
                 else:
-                    return "\u26a0\ufe0f", "Di atas rata-rata", f"{u} tahun - lebih tua dari rata-rata ({MEAN_USIA:.1f} thn). Sedikit berisiko."
+                    return "PERHATIAN", "Di atas rata-rata", f"{u} tahun, lebih tua dari rata-rata ({MEAN_USIA:.1f} thn). Sedikit berisiko."
 
             def riwayat_insight(h):
                 if h == 1:
-                    return "\u2705", "Pernah hadir", "Memiliki riwayat hadir di event sebelumnya - indikator loyalitas."
+                    return "BAIK", "Pernah hadir", "Pernah hadir di event sebelumnya. Indikator loyalitas yang baik."
                 else:
-                    return "\u2796", "Belum ada riwayat", "Peserta baru atau tidak hadir sebelumnya."
+                    return "NETRAL", "Belum ada riwayat", "Peserta baru atau tidak hadir sebelumnya."
 
-            jk_icon       = "\u2705" if jk_enc == 0 else "\u2796"
+            jk_icon       = "BAIK" if jk_enc == 0 else "NETRAL"
             jk_label_disp = "Perempuan" if jk_enc == 0 else "Laki-Laki"
-            jk_note       = "Mayoritas peserta (91.7%) Perempuan - profil umum." if jk_enc == 0 else "Laki-Laki minoritas (8.3%) di dataset."
+            jk_note       = "Mayoritas peserta (91.7%) Perempuan. Profil umum." if jk_enc == 0 else "Laki-Laki, minoritas (8.3%) di dataset."
 
             jarak_icon,   jarak_label,   jarak_note   = jarak_insight(jarak)
             usia_icon,    usia_label,    usia_note    = usia_insight(usia)
@@ -694,17 +895,20 @@ with tab_pred:
                 [fc1, fc2, fc3, fc4], factor_cards
             ):
                 with col_card:
-                    border_color = "#27ae60" if icon == "\u2705" else ("#e67e22" if icon == "\u26a0\ufe0f" else "#aaaaaa")
+                    border_color = "#0f2040" if icon == "BAIK" else ("#b91c1c" if icon == "PERHATIAN" else "#8a9ab5")
+                    badge_bg     = "#0f2040" if icon == "BAIK" else ("#b91c1c" if icon == "PERHATIAN" else "#6b7fa0")
                     st.markdown(f"""
-                    <div style="border:1.5px solid {border_color};border-radius:8px;padding:16px;
-                                background:#fff;min-height:200px;">
-                      <div style="font-size:24px;margin-bottom:8px;">{icon}</div>
-                      <div style="font-size:13px;color:#888;text-transform:uppercase;
-                                  letter-spacing:0.5px;margin-bottom:6px;font-weight:600;">{title}</div>
-                      <div style="font-size:19px;font-weight:700;color:#111;margin-bottom:4px;">{value}</div>
-                      <div style="font-size:14px;color:#444;margin-bottom:6px;">{assessment}</div>
-                      <div style="font-size:12px;color:#aaa;font-style:italic;margin-bottom:6px;">Importance: {imp}</div>
-                      <div style="font-size:13px;color:#555;line-height:1.5;">{note}</div>
+                    <div style="border:2px solid {border_color};border-radius:10px;padding:18px;
+                                background:#fff;min-height:210px;">
+                      <div style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;
+                                  font-weight:700;background:{badge_bg};color:#fff;margin-bottom:10px;
+                                  letter-spacing:1px;">{icon}</div>
+                      <div style="font-size:13px;color:#4a6fa5;text-transform:uppercase;
+                                  letter-spacing:0.8px;margin-bottom:6px;font-weight:700;">{title}</div>
+                      <div style="font-size:22px;font-weight:800;color:#0f2040;margin-bottom:4px;">{value}</div>
+                      <div style="font-size:15px;color:#1e2d4a;margin-bottom:6px;font-weight:600;">{assessment}</div>
+                      <div style="font-size:13px;color:#4a6fa5;font-style:italic;margin-bottom:6px;">Importance: {imp}</div>
+                      <div style="font-size:14px;color:#555;line-height:1.6;">{note}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -773,7 +977,7 @@ with tab_pred:
             csv_bytes = df_result.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
             st.markdown("<br>", unsafe_allow_html=True)
             st.download_button(
-                label="\u2b07\ufe0f Unduh Hasil Prediksi (CSV)",
+                label="Unduh Hasil Prediksi (CSV)",
                 data=csv_bytes,
                 file_name="hasil_prediksi.csv",
                 mime="text/csv",
@@ -786,7 +990,7 @@ with tab_pred:
 
 
 # ============================================================
-# TAB 3 — EVALUASI MODEL
+# TAB 3 Ã¢â‚¬â€ EVALUASI MODEL
 # ============================================================
 with tab_eval:
     st.markdown('<div class="section-header">Evaluasi Model Random Forest</div>', unsafe_allow_html=True)
@@ -844,10 +1048,10 @@ with tab_eval:
             cm_data = m["confusion_matrix"]
             st.markdown(
                 f"<div class='info-box' style='font-size:13px;'>"
-                f"<b>True Positive (TP):</b> {cm_data['TP']} — Hadir, diprediksi Hadir<br>"
-                f"<b>True Negative (TN):</b> {cm_data['TN']} — Tidak Hadir, diprediksi Tidak Hadir<br>"
-                f"<b>False Positive (FP):</b> {cm_data['FP']} — Tidak Hadir, diprediksi Hadir<br>"
-                f"<b>False Negative (FN):</b> {cm_data['FN']} — Hadir, diprediksi Tidak Hadir"
+                f"<b>True Positive (TP):</b> {cm_data['TP']} Ã¢â‚¬â€ Hadir, diprediksi Hadir<br>"
+                f"<b>True Negative (TN):</b> {cm_data['TN']} Ã¢â‚¬â€ Tidak Hadir, diprediksi Tidak Hadir<br>"
+                f"<b>False Positive (FP):</b> {cm_data['FP']} Ã¢â‚¬â€ Tidak Hadir, diprediksi Hadir<br>"
+                f"<b>False Negative (FN):</b> {cm_data['FN']} Ã¢â‚¬â€ Hadir, diprediksi Tidak Hadir"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -944,7 +1148,7 @@ with tab_eval:
         st.markdown("<br>", unsafe_allow_html=True)
 
         # --- Feature Narrative ---
-        st.markdown("**Analisis Fitur — Apa yang Model Pelajari**")
+        st.markdown("**Analisis Fitur Ã¢â‚¬â€ Apa yang Model Pelajari**")
 
         feat_label_map = {
             "Jenis_Kelamin": "Jenis Kelamin",
@@ -956,34 +1160,36 @@ with tab_eval:
         }
         feat_narratives = {
             "Jarak_km": (
-                "Faktor paling dominan. Model menemukan bahwa <b>semakin dekat tempat tinggal peserta ke lokasi event, "
-                "semakin tinggi kemungkinan hadir</b>. Peserta yang tinggal di radius &lt;5 km dari Halim Perdanakusuma "
-                "memiliki kecenderungan hadir yang jauh lebih tinggi. Ini konsisten secara logis — jarak yang jauh "
-                "meningkatkan biaya waktu dan transportasi, yang menjadi penghalang kehadiran."
+                "Ini faktor paling berpengaruh dalam model. <b>Semakin dekat rumah peserta ke lokasi event, "
+                "semakin tinggi kemungkinan mereka datang</b>. Peserta yang tinggal di bawah 5 km dari "
+                "Halim Perdanakusuma punya tingkat kehadiran jauh lebih tinggi. "
+                "Wajar saja, jarak yang jauh membuat perjalanan lebih melelahkan dan mahal."
             ),
             "Usia": (
-                "Faktor terbesar kedua. Pola yang ditemukan: <b>peserta berusia 30–50 tahun cenderung lebih konsisten hadir</b> "
-                "dibanding peserta yang sangat muda (&lt;28 tahun) atau sangat tua (&gt;58 tahun). "
-                "Rentang usia produktif ini kemungkinan besar berkaitan dengan stabilitas jadwal dan motivasi pengembangan keterampilan."
+                "Faktor terbesar kedua. <b>Peserta usia 30 sampai 50 tahun paling konsisten hadir</b>, "
+                "dibanding yang lebih muda dari 28 tahun atau lebih tua dari 58 tahun. "
+                "Usia produktif biasanya punya jadwal yang lebih teratur dan motivasi lebih tinggi untuk belajar keterampilan baru."
             ),
             "Status_Pendaftaran": (
-                "Fitur ketiga yang berpengaruh. Peserta yang berstatus <b>Terdaftar resmi cenderung lebih berkomitmen untuk hadir</b> "
-                "dibanding peserta yang tidak terdaftar secara formal. Status pendaftaran mencerminkan tingkat niat awal peserta."
+                "Fitur ketiga. <b>Peserta yang sudah terdaftar resmi lebih cenderung datang</b> "
+                "dibanding yang belum terdaftar formal. "
+                "Masuk akal, karena mendaftar menunjukkan niat yang lebih serius sejak awal."
             ),
             "Event_ID": (
-                "Identitas event (Event 1 vs Event 2) berkontribusi cukup signifikan. Ini mengindikasikan bahwa "
-                "<b>ada perbedaan pola kehadiran antar event</b>, kemungkinan dipengaruhi oleh hari, promosi, atau "
-                "informasi yang disebarkan sebelum event berlangsung."
+                "Event mana yang diikuti (Event 1 atau 2) cukup berpengaruh. "
+                "<b>Pola kehadiran berbeda di setiap event</b>, "
+                "kemungkinan karena perbedaan hari pelaksanaan, cara promosi, "
+                "atau seberapa luas informasi acara tersebar sebelumnya."
             ),
             "hadir_event_sebelumnya": (
-                "Meskipun memiliki importance relatif kecil (3.35%), fitur ini bermakna secara kontekstual: "
-                "<b>peserta yang pernah hadir di event sebelumnya cenderung hadir kembali</b>. "
-                "Ini adalah indikator loyalitas dan kepuasan peserta terhadap kegiatan pelatihan PT CLN."
+                "Pengaruhnya kecil (3.35%), tapi bermakna: "
+                "<b>peserta yang pernah hadir sebelumnya cenderung hadir lagi</b>. "
+                "Ini menunjukkan mereka punya pengalaman positif dan loyal terhadap kegiatan pelatihan PT CLN."
             ),
             "Jenis_Kelamin": (
-                "Fitur dengan kontribusi terkecil (2.18%). Dataset didominasi oleh peserta Perempuan (91%), "
-                "sehingga pola antar gender sulit dibedakan secara statistik. "
-                "<b>Jenis kelamin bukan penentu utama kehadiran</b> dalam konteks pelatihan kuliner ini."
+                "Pengaruhnya paling kecil (2.18%). Karena 91% peserta adalah perempuan, "
+                "model tidak banyak belajar dari perbedaan gender. "
+                "<b>Jenis kelamin bukan faktor penentu kehadiran</b> dalam pelatihan ini."
             ),
         }
 
@@ -992,18 +1198,18 @@ with tab_eval:
             feat_name = feat_label_map.get(feat_key, feat_key)
             imp_pct = item["importance"] * 100
             bar_width = int(imp_pct * 1.8)  # scale for visual
-            narrative = feat_narratives.get(feat_key, "—")
-            rank_badge = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣"][fi_top.index(item)]
+            narrative = feat_narratives.get(feat_key, "Ã¢â‚¬â€")
+            rank_num = fi_top.index(item) + 1
 
             st.markdown(f"""
             <div class="info-box" style="margin-bottom:10px;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                <span style="font-size:18px;">{rank_badge}</span>
+                <span style="font-size:14px;font-weight:700;color:#4a6fa5;background:#eef1f8;padding:3px 10px;border-radius:4px;">#{rank_num}</span>
                 <span style="font-weight:700;font-size:15px;color:#111;">{feat_name}</span>
                 <span style="margin-left:auto;font-size:13px;font-weight:600;color:#333;">{imp_pct:.2f}%</span>
               </div>
-              <div style="background:#f0f0f0;border-radius:4px;height:6px;margin-bottom:10px;">
-                <div style="background:#111;border-radius:4px;height:6px;width:{min(bar_width,100)}%;"></div>
+              <div style="background:#d0daea;border-radius:4px;height:6px;margin-bottom:10px;">
+                <div style="background:#0f2040;border-radius:4px;height:6px;width:{min(bar_width,100)}%;"></div>
               </div>
               <div style="font-size:13px;color:#444;line-height:1.6;">{narrative}</div>
             </div>
@@ -1016,20 +1222,21 @@ with tab_eval:
         hadir_f1 = m["per_class"]["Hadir"]["f1"] * 100
         tidak_f1 = m["per_class"]["Tidak Hadir"]["f1"] * 100
         st.markdown(f"""
-        <div class="info-box" style="line-height:1.8;font-size:13px;">
-        <p>Model Random Forest yang dilatih dari <b>{m['n_total']} data</b> ({m['n_train']} training, {m['n_test']} testing)
-        berhasil menangkap pola utama kehadiran peserta dengan akurasi <b>{m['accuracy_pct']:.2f}%</b>.
-        Model sangat baik dalam mendeteksi peserta yang akan <b>Hadir</b> (F1-Score: {hadir_f1:.1f}%),
-        namun menunjukkan keterbatasan dalam mendeteksi peserta yang <b>Tidak Hadir</b> (F1-Score: {tidak_f1:.1f}%).</p>
+        <div class="info-box" style="line-height:1.8;font-size:15px;">
+        <p>Model ini dilatih dari <b>{m['n_total']} data</b> ({m['n_train']} untuk training, {m['n_test']} untuk testing),
+        dan berhasil menangkap pola kehadiran peserta dengan akurasi <b>{m['accuracy_pct']:.2f}%</b>.
+        Model bekerja sangat baik untuk mengidentifikasi peserta yang kemungkinan <b>Hadir</b> (F1-Score: {hadir_f1:.1f}%),
+        namun kurang optimal untuk mendeteksi yang <b>Tidak Hadir</b> (F1-Score: {tidak_f1:.1f}%).</p>
 
-        <p>Keterbatasan ini bukan bug — ini adalah konsekuensi wajar dari distribusi data yang tidak seimbang
-        ({pct_hadir:.1f}% Hadir vs {100-pct_hadir:.1f}% Tidak Hadir). Model telah dikonfigurasi dengan
-        <code>class_weight='balanced'</code> untuk memitigasi hal ini, namun dengan dataset 300 baris,
-        sinyal untuk kelas minoritas masih terbatas.</p>
+        <p>Keterbatasan ini bukan masalah teknis. Ini terjadi karena data tidak seimbang:
+        {pct_hadir:.1f}% peserta hadir vs {100-pct_hadir:.1f}% tidak hadir.
+        Konfigurasi <code>class_weight='balanced'</code> sudah digunakan untuk mengurangi bias ini,
+        tapi dengan hanya 300 baris data, sinyal dari kelas minoritas masih terbatas.</p>
 
-        <p><b>Rekomendasi:</b> Untuk prediksi operasional, gunakan model ini sebagai <i>screening tool</i>
-        — fokus pada peserta yang diprediksi <b>Tidak Hadir</b> sebagai target tindak lanjut (reminder, konfirmasi ulang),
-        bukan sebagai keputusan final. Akurasi model akan meningkat seiring bertambahnya data historis event berikutnya.</p>
+        <p><b>Rekomendasi:</b> Gunakan model ini sebagai alat bantu awal.
+        Fokuskan perhatian pada peserta yang diprediksi <b>Tidak Hadir</b> untuk ditindaklanjuti
+        (pengingat atau konfirmasi ulang). Jangan jadikan ini sebagai keputusan akhir.
+        Performa model akan meningkat seiring bertambahnya data dari event berikutnya.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1169,11 +1376,11 @@ with tab_eval:
             pdf_bytes = bytes(pdf.output())
             return pdf_bytes
 
-        if st.button("📄 Generate & Unduh Laporan PDF", use_container_width=True):
+        if st.button("Generate & Unduh Laporan PDF", use_container_width=True):
             with st.spinner("Membuat laporan PDF..."):
                 pdf_bytes = generate_pdf(m)
             st.download_button(
-                label="⬇️ Unduh Laporan PDF",
+                label="Unduh Laporan PDF",
                 data=pdf_bytes,
                 file_name="laporan_evaluasi_model_rf.pdf",
                 mime="application/pdf",
@@ -1183,3 +1390,51 @@ with tab_eval:
 
     except FileNotFoundError:
         st.error("Hasil evaluasi tidak ditemukan. Jalankan `python scripts/03_evaluate.py` terlebih dahulu.")
+
+
+# ============================================================
+# TAB 4 Ã¢â‚¬â€ LOG PREDIKSI
+# ============================================================
+with tab_log:
+    st.markdown('<div class="section-header">Log Prediksi Sesi Ini</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    log = st.session_state.get("pred_log", [])
+
+    if not log:
+        st.markdown("""
+        <div class="info-box" style="text-align:center;padding:48px 20px;">
+        <div style="font-size:20px;font-weight:800;color:#0f2040;margin-bottom:10px;">Belum ada prediksi</div>
+        <div style="font-size:16px;color:#4a6fa5;">Lakukan prediksi di tab Prediksi Kehadiran<br>untuk melihat riwayat di sini.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        total     = len(log)
+        hadir_cnt = sum(1 for e in log if e["Prediksi"] == "Hadir")
+        tidak_cnt = total - hadir_cnt
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Total Prediksi", total)
+        c2.metric("Diprediksi Hadir", hadir_cnt)
+        c3.metric("Diprediksi Tidak Hadir", tidak_cnt)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        df_log = pd.DataFrame(log)
+        st.dataframe(df_log, use_container_width=True, hide_index=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_dl, col_clr = st.columns([3, 1])
+        with col_dl:
+            csv_log = df_log.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+            st.download_button(
+                label="Unduh Log Prediksi (CSV)",
+                data=csv_log,
+                file_name="log_prediksi.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with col_clr:
+            if st.button("Hapus Log", use_container_width=True):
+                st.session_state["pred_log"] = []
+                st.rerun()

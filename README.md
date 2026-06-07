@@ -1,23 +1,65 @@
 # Prediksi Kehadiran Anggota Pelatihan
-## PT Cahaya Ladara Nusantara — Algoritma Random Forest
+## PT Cahaya Ladara Nusantara
 
-Sistem prediksi kehadiran anggota pada kegiatan pelatihan makanan viral Sushi & Onigiri
-menggunakan algoritma **Random Forest Classifier**, disertai aplikasi Streamlit interaktif
-untuk visualisasi dan prediksi.
+Ini adalah aplikasi prediksi kehadiran anggota pada kegiatan pelatihan makanan viral Sushi dan Onigiri yang diselenggarakan oleh PT Cahaya Ladara Nusantara. Aplikasi ini dibangun sebagai bagian dari skripsi dengan menggunakan algoritma Random Forest dan di-deploy sebagai web app interaktif berbasis Streamlit.
 
 ---
 
-## Deskripsi Proyek
+## Tentang Proyek
 
-| Item | Detail |
-|------|--------|
-| **Judul Skripsi** | Prediksi Kehadiran Anggota Menggunakan Algoritma Random Forest Berdasarkan Data Riwayat Pelatihan Makanan Viral Sushi dan Onigiri di PT Cahaya Ladara Nusantara |
-| **Program Studi** | Sistem Informasi — Universitas Dirgantara Marsekal Suryadarma |
-| **Metode** | Knowledge Discovery in Database (KDD) + Random Forest |
-| **Event 1** | Minggu, 09 November 2025 |
-| **Event 2** | Minggu, 16 November 2025 |
-| **Total Dataset** | 300 baris (150 per event, setelah digabung) |
-| **Target Variabel** | Status Kehadiran (Hadir / Tidak Hadir) |
+Judul skripsi: Prediksi Kehadiran Anggota Menggunakan Algoritma Random Forest Berdasarkan Data Riwayat Pelatihan Makanan Viral Sushi dan Onigiri di PT Cahaya Ladara Nusantara
+
+Program Studi: Sistem Informasi, Universitas Dirgantara Marsekal Suryadarma
+
+Metode yang digunakan adalah Knowledge Discovery in Database (KDD) dengan lima tahapan: seleksi data, praproses, transformasi, data mining, dan evaluasi. Model yang dibangun adalah Random Forest Classifier dari library scikit-learn.
+
+Data yang digunakan berasal dari dua event pelatihan yang diselenggarakan pada Minggu, 09 November 2025 (Event 1) dan Minggu, 16 November 2025 (Event 2), dengan total 300 data peserta.
+
+---
+
+## Fitur Aplikasi
+
+Aplikasi terdiri dari empat halaman utama:
+
+Prediksi Kehadiran: Masukkan data peserta secara manual, klik tombol prediksi, dan dapatkan hasil prediksi Hadir atau Tidak Hadir beserta probabilitasnya. Hasil bisa diunduh dalam format CSV.
+
+Dashboard: Menampilkan ringkasan statistik dataset dan lima grafik interaktif, mulai dari distribusi kehadiran per event, distribusi usia, distribusi jarak tempat tinggal, hingga perbandingan gender.
+
+Evaluasi Model: Menampilkan metrik evaluasi lengkap (akurasi, presisi, recall, F1-score), visualisasi confusion matrix, grafik feature importance, dan laporan PDF yang bisa diunduh.
+
+Log Prediksi: Menyimpan riwayat prediksi selama sesi berlangsung dan memungkinkan ekspor ke CSV.
+
+---
+
+## Hasil Model
+
+Model Random Forest yang dilatih menghasilkan akurasi 75% pada data uji (60 data dari total 300). Faktor yang paling berpengaruh terhadap prediksi kehadiran adalah jarak tempat tinggal ke lokasi event (47.73%), diikuti oleh usia peserta (36.00%).
+
+Fitur-fitur yang digunakan dalam model:
+- Jenis Kelamin
+- Usia
+- Jarak dari Rumah ke Lokasi Event (km)
+- Status Pendaftaran
+- Event ID (Event 1 atau Event 2)
+- Riwayat Hadir di Event Sebelumnya
+
+---
+
+## Cara Menjalankan Secara Lokal
+
+Pastikan Python 3.11 sudah terinstall, lalu jalankan perintah berikut dari folder skripsi:
+
+Install dependensi:
+```
+pip install -r requirements.txt
+```
+
+Jalankan aplikasi:
+```
+streamlit run app.py
+```
+
+Aplikasi akan terbuka otomatis di browser pada alamat http://localhost:8501.
 
 ---
 
@@ -25,196 +67,55 @@ untuk visualisasi dan prediksi.
 
 ```
 skripsi/
+├── .streamlit/
+│   └── config.toml          # Konfigurasi Streamlit
 ├── data/
-│   ├── raw/
-│   │   ├── event1_raw.xlsx      # Dataset Event 1 (09 Nov 2025) — 150 baris
-│   │   └── event2_raw.xlsx      # Dataset Event 2 (16 Nov 2025) — 150 baris
+│   ├── raw/                  # Dataset mentah Excel (event1 dan event2)
 │   └── processed/
-│       └── dataset_gabungan.csv # Dataset gabungan setelah preprocessing
+│       └── dataset_gabungan.csv
 ├── models/
-│   ├── random_forest_model.pkl  # Model Random Forest terlatih
-│   └── split_info.json          # Metadata train/test split
+│   ├── random_forest_model.pkl
+│   └── split_info.json
 ├── outputs/
-│   ├── metrics_summary.json     # Hasil evaluasi model (accuracy, precision, dll.)
-│   ├── confusion_matrix.png     # Visualisasi confusion matrix
-│   ├── feature_importance.png   # Visualisasi feature importance
-│   ├── distribusi_kehadiran.png # Distribusi status kehadiran per event
-│   ├── distribusi_usia.png      # Distribusi usia peserta
-│   └── distribusi_jarak.png     # Distribusi jarak tempat tinggal
+│   ├── metrics_summary.json
+│   ├── confusion_matrix.png
+│   ├── feature_importance.png
+│   ├── distribusi_kehadiran.png
+│   ├── distribusi_usia.png
+│   └── distribusi_jarak.png
 ├── scripts/
-│   ├── 01_preprocess.py         # Data selection, cleaning, merge, feature engineering
-│   ├── 02_train.py              # Training model Random Forest
-│   └── 03_evaluate.py           # Evaluasi model dan generate visualisasi
-├── app.py                       # Aplikasi Streamlit
-├── requirements.txt             # Daftar dependensi Python (pip)
-├── environment.yml              # File environment Conda
-├── README.md                    # Dokumentasi ini
-└── tambahanskripsi.md           # Panduan penulisan tambahan skripsi
+│   ├── 01_preprocess.py
+│   ├── 02_train.py
+│   └── 03_evaluate.py
+├── app.py
+├── logo.png
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## ⚡ Quick Start (Fresh Clone)
+## Menjalankan Pipeline dari Awal
 
-```bash
-# 1. Install dependensi
-pip install -r requirements.txt
+Jika ingin melatih ulang model dari data mentah, jalankan tiga script berikut secara berurutan:
 
-# 2. Letakkan file data di folder data/raw/
-#    → data/raw/event1_raw.xlsx
-#    → data/raw/event2_raw.xlsx
-
-# 3. Jalankan seluruh pipeline
-python scripts/01_preprocess.py && python scripts/02_train.py && python scripts/03_evaluate.py
-
-# 4. Jalankan aplikasi
-streamlit run app.py
 ```
-
----
-
-## Cara Setup Environment
-
-> **Prasyarat:** Python **3.11.x** diperlukan.
-> Cek versi: `python --version`
-> Download Python 3.11: https://www.python.org/downloads/release/python-3110/
-
-### Opsi 1 — pip (direkomendasikan untuk pengguna biasa)
-
-```bash
-pip install -r requirements.txt
-```
-
-### Opsi 2 — Conda
-
-```bash
-conda env create -f environment.yml
-conda activate skripsi-cln
-```
-
----
-
-## Prasyarat Data
-
-> **⚠️ Penting:** File data mentah **tidak disertakan** dalam repositori ini.
-
-Sebelum menjalankan pipeline, letakkan file berikut di folder `data/raw/`:
-
-| File | Keterangan |
-|------|------------|
-| `event1_raw.xlsx` | Dataset Event 1 — Minggu, 09 November 2025 (150 baris) |
-| `event2_raw.xlsx` | Dataset Event 2 — Minggu, 16 November 2025 (150 baris) |
-
-Struktur kolom yang diperlukan: `Nama`, `Jenis_Kelamin`, `Usia`, `Jarak`, `Status_Pendaftaran`, `Status_Kehadiran`.
-
----
-
-## Cara Menjalankan Pipeline
-
-> **Penting:** Semua perintah dijalankan dari **root folder `skripsi/`**.
-
-### Langkah 1 — Preprocessing
-
-```bash
 python scripts/01_preprocess.py
-```
-
-Melakukan: loading dataset, cleaning, standardisasi, parsing Jarak, merge, feature engineering, encoding, simpan ke `data/processed/dataset_gabungan.csv`.
-
-### Langkah 2 — Training Model
-
-```bash
 python scripts/02_train.py
-```
-
-Melakukan: load dataset, split 80/20 stratified, training Random Forest, simpan model ke `models/random_forest_model.pkl`.
-
-### Langkah 3 — Evaluasi & Visualisasi
-
-```bash
 python scripts/03_evaluate.py
 ```
 
-Melakukan: load model, prediksi test set, hitung metrik (accuracy, precision, recall, F1), generate 5 chart, simpan ke `outputs/metrics_summary.json` dan `outputs/*.png`.
-
-### (Opsional) Menjalankan Seluruh Pipeline Sekaligus
-
-```bash
-python scripts/01_preprocess.py && python scripts/02_train.py && python scripts/03_evaluate.py
-```
+Script pertama membersihkan dan menggabungkan data dari dua file Excel mentah, script kedua melatih model Random Forest, dan script ketiga menghasilkan metrik evaluasi dan visualisasi yang digunakan oleh aplikasi.
 
 ---
 
-## Cara Menjalankan Aplikasi Streamlit
+## Dependensi
 
-```bash
-streamlit run app.py
-```
-
-Aplikasi akan terbuka di browser secara otomatis di `http://localhost:8501`.
-
-### Fitur Aplikasi
-
-| Tab | Konten |
-|-----|--------|
-| **📊 Dashboard** | Ringkasan dataset, 5 chart interaktif (distribusi kehadiran, gender, usia, jarak, per event) |
-| **🔮 Prediksi Kehadiran** | Form input manual → prediksi Hadir/Tidak Hadir + probabilitas + download CSV |
-| **📈 Evaluasi Model** | Tabel metrik, confusion matrix, feature importance, download laporan PDF |
-
----
-
-## Fitur-Fitur Model
-
-| Fitur | Tipe | Keterangan |
-|-------|------|------------|
-| `Jenis_Kelamin` | Binary | 0=Perempuan, 1=Laki-Laki |
-| `Usia` | Numerik | Usia peserta dalam tahun |
-| `Jarak_km` | Numerik | Jarak tempat tinggal ke lokasi event (km) |
-| `Status_Pendaftaran` | Binary | 1=Terdaftar, 0=Tidak Terdaftar |
-| `Event_ID` | Kategorik | 1=Event 09 Nov, 2=Event 16 Nov |
-| `hadir_event_sebelumnya` | Binary | 1=Hadir di event sebelumnya, 0=Tidak/N/A |
-
-**Target:** `Status_Kehadiran` — 1=Hadir, 0=Tidak Hadir
-
----
-
-## Hasil Model
-
-| Metrik | Nilai |
-|--------|-------|
-| **Akurasi** | 75.00% |
-| **Presisi (Weighted)** | 69.60% |
-| **Recall (Weighted)** | 75.00% |
-| **F1-Score (Weighted)** | 71.26% |
-
-**Feature Importance (Urutan):**
-1. Jarak (km) — 47.73%
-2. Usia — 36.00%
-3. Status Pendaftaran — 6.51%
-4. Event ID — 4.22%
-5. Hadir Event Sebelumnya — 3.35%
-6. Jenis Kelamin — 2.18%
-
----
-
-## Dependensi Utama
-
-- `scikit-learn` — Random Forest Classifier
-- `pandas` / `numpy` — Data processing
-- `streamlit` — Web application
-- `plotly` — Interactive charts
-- `matplotlib` / `seaborn` — Static charts (pipeline)
-- `fpdf2` — PDF report generation
-- `openpyxl` — Baca file Excel
-
----
-
-## Catatan Penting
-
-1. **Data mentah harus disediakan terlebih dahulu** — lihat bagian [Prasyarat Data](#prasyarat-data) di atas sebelum menjalankan pipeline.
-2. **Jalankan script secara berurutan**: `01` → `02` → `03` → `app.py`.
-   Aplikasi Streamlit membutuhkan `models/random_forest_model.pkl` dan file `outputs/*.png` yang dihasilkan oleh pipeline.
-3. **Gunakan Python 3.11.x** — Python 3.12+ belum diuji dan mungkin menyebabkan inkompatibilitas.
-4. Seluruh script menggunakan `random_state=42` untuk reproduksibilitas.
-5. Model menggunakan `class_weight='balanced'` untuk menangani distribusi kelas yang tidak seimbang (~79% Hadir).
-6. File `tambahanskripsi.md` berisi panduan lengkap untuk penulisan BAB III, IV, dan V skripsi.
+- streamlit untuk web app
+- scikit-learn untuk model Random Forest
+- pandas dan numpy untuk pengolahan data
+- plotly untuk grafik interaktif
+- matplotlib dan seaborn untuk grafik statis pada pipeline
+- fpdf2 untuk ekspor laporan PDF
+- pillow untuk pengolahan gambar
+- openpyxl untuk membaca file Excel
