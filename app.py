@@ -412,6 +412,7 @@ div[data-baseweb="input"] input {
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
+header button {visibility: visible !important;}
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ Input widget styling Ã¢â€â‚¬Ã¢â€â‚¬ */
 div[data-baseweb="select"] > div {
