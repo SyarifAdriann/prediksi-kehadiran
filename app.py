@@ -96,28 +96,27 @@ html, body, [class*="css"] {
     font-weight: 700 !important;
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Lock sidebar permanent Ã¢â€â‚¬Ã¢â€â‚¬ */
-[data-testid="stSidebarCollapseButton"],
-button[title="Close sidebar"],
-button[aria-label="Close sidebar"] {
-    display: none !important;
+/* ── Sidebar toggle button ── */
+[data-testid="stSidebarCollapseButton"] button {
+    background: rgba(255,255,255,0.12) !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    width: 34px !important;
+    height: 34px !important;
+    transition: background 0.2s ease !important;
 }
-section[data-testid="stSidebar"] {
-    transform: none !important;
-    visibility: visible !important;
-    overflow: hidden !important;
+[data-testid="stSidebarCollapseButton"] button:hover {
+    background: rgba(255,255,255,0.24) !important;
+}
+[data-testid="stSidebarCollapseButton"] svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
 }
 section[data-testid="stSidebar"] > div:first-child {
     overflow-y: hidden !important;
     padding: 0 !important;
 }
-section[data-testid="stSidebar"][aria-expanded="false"] {
-    display: flex !important;
-    transform: none !important;
-    margin-left: 0 !important;
-    min-width: 244px !important;
-    visibility: visible !important;
-}
+
 
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar logo Ã¢â€â‚¬Ã¢â€â‚¬ */
