@@ -743,12 +743,12 @@ with tab_pred:
             if p:
                 if p['pred'] == 1:
                     st.markdown(
-                        '<div class="result-hadir">Ã¢Å“â€œ DIPREDIKSI HADIR</div>',
+                        '<div class="result-hadir">DIPREDIKSI HADIR</div>',
                         unsafe_allow_html=True
                     )
                 else:
                     st.markdown(
-                        '<div class="result-tidak-hadir">Ã¢Å“â€” DIPREDIKSI TIDAK HADIR</div>',
+                        '<div class="result-tidak-hadir">DIPREDIKSI TIDAK HADIR</div>',
                         unsafe_allow_html=True
                     )
 
