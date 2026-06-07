@@ -454,6 +454,67 @@ div[data-baseweb="input"]:focus-within > div {
 
 
 # ============================================================
+# LOGIN GATE
+# ============================================================
+def _check_login(username: str, password: str) -> bool:
+    try:
+        valid_user = st.secrets["credentials"]["username"]
+        valid_pass = st.secrets["credentials"]["password"]
+    except Exception:
+        valid_user = "admin"
+        valid_pass = "supervisor"
+    return username.strip() == valid_user and password == valid_pass
+
+
+if not st.session_state.get("logged_in", False):
+    st.markdown("<br>", unsafe_allow_html=True)
+    _, col_login, _ = st.columns([1, 1.4, 1])
+
+    with col_login:
+        if os.path.exists(LOGO_PATH):
+            with open(LOGO_PATH, "rb") as _lf:
+                _b64 = base64.b64encode(_lf.read()).decode()
+            st.markdown(
+                f'<div style="text-align:center;margin-bottom:20px;">'
+                f'<img src="data:image/png;base64,{_b64}" '
+                f'style="width:120px;height:auto;" /></div>',
+                unsafe_allow_html=True
+            )
+
+        st.markdown("""
+        <div style="background:#ffffff;border-radius:16px;
+                    padding:36px 36px 8px 36px;
+                    box-shadow:0 8px 40px rgba(15,32,64,0.14);
+                    border-top:4px solid #2563a8;margin-bottom:0;">
+            <div style="font-size:21px;font-weight:800;color:#0f2040;
+                        text-align:center;margin-bottom:4px;">
+                Sistem Prediksi Kehadiran
+            </div>
+            <div style="font-size:13px;color:#6b7fa0;text-align:center;
+                        margin-bottom:24px;font-weight:500;">
+                PT Cahaya Ladara Nusantara &nbsp;|&nbsp; Login Admin
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        user_input = st.text_input(
+            "Username", placeholder="Masukkan username", key="login_user"
+        )
+        pass_input = st.text_input(
+            "Password", type="password",
+            placeholder="Masukkan password", key="login_pass"
+        )
+        if st.button("Masuk", use_container_width=True, key="login_btn"):
+            if _check_login(user_input, pass_input):
+                st.session_state["logged_in"] = True
+                st.rerun()
+            else:
+                st.error("Username atau password salah.")
+
+    st.stop()
+
+
+# ============================================================
 # LOAD DATA (cached)
 # ============================================================
 
@@ -536,6 +597,12 @@ with st.sidebar:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("<div style='padding:16px 12px 8px 12px;'>", unsafe_allow_html=True)
+    if st.button("Keluar", use_container_width=True, key="logout_btn"):
+        st.session_state["logged_in"] = False
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ============================================================
