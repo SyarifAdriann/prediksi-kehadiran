@@ -2,75 +2,75 @@
   "n_test": 60,
   "n_train": 240,
   "n_total": 300,
-  "accuracy": 0.75,
-  "accuracy_pct": 75.0,
-  "precision_weighted": 0.696,
-  "recall_weighted": 0.75,
-  "f1_weighted": 0.7126,
+  "accuracy": 0.8333,
+  "accuracy_pct": 83.33,
+  "precision_weighted": 0.8325,
+  "recall_weighted": 0.8333,
+  "f1_weighted": 0.832,
   "per_class": {
     "Hadir": {
-      "precision": 0.7963,
-      "recall": 0.9149,
-      "f1": 0.8515,
-      "support": 47
+      "precision": 0.8421,
+      "recall": 0.8889,
+      "f1": 0.8649,
+      "support": 36
     },
     "Tidak Hadir": {
-      "precision": 0.3333,
-      "recall": 0.1538,
-      "f1": 0.2105,
-      "support": 13
+      "precision": 0.8182,
+      "recall": 0.75,
+      "f1": 0.7826,
+      "support": 24
     }
   },
   "confusion_matrix": {
-    "TN": 2,
-    "FP": 11,
+    "TN": 18,
+    "FP": 6,
     "FN": 4,
-    "TP": 43
+    "TP": 32
   },
   "feature_importance": {
-    "Jenis_Kelamin": 0.02184692662759057,
-    "Usia": 0.36001692262266394,
-    "Jarak_km": 0.4772506391036618,
-    "Status_Pendaftaran": 0.06510348744053576,
-    "Event_ID": 0.04224555075810258,
-    "hadir_event_sebelumnya": 0.033536473447445495
+    "Jenis_Kelamin": 0.012491872953539682,
+    "Usia": 0.2611516702293655,
+    "Jarak_km": 0.5857582738265759,
+    "Status_Pendaftaran": 0.0010350283616882745,
+    "Event_ID": 0.023523111938809117,
+    "hadir_event_sebelumnya": 0.1160400426900217
   },
   "feature_importance_sorted": [
     {
       "feature": "Jarak_km",
-      "importance": 0.4773
+      "importance": 0.5858
     },
     {
       "feature": "Usia",
-      "importance": 0.36
-    },
-    {
-      "feature": "Status_Pendaftaran",
-      "importance": 0.0651
-    },
-    {
-      "feature": "Event_ID",
-      "importance": 0.0422
+      "importance": 0.2612
     },
     {
       "feature": "hadir_event_sebelumnya",
-      "importance": 0.0335
+      "importance": 0.116
+    },
+    {
+      "feature": "Event_ID",
+      "importance": 0.0235
     },
     {
       "feature": "Jenis_Kelamin",
-      "importance": 0.0218
+      "importance": 0.0125
+    },
+    {
+      "feature": "Status_Pendaftaran",
+      "importance": 0.001
     }
   ],
   "model_params": {
-    "n_estimators": 100,
+    "n_estimators": 300,
     "random_state": 42,
     "class_weight": "balanced",
     "test_size": 0.2
   },
   "distribusi_dataset": {
     "total": 300,
-    "hadir": 236,
-    "tidak_hadir": 64,
-    "hadir_pct": 78.67
+    "hadir": 180,
+    "tidak_hadir": 120,
+    "hadir_pct": 60.0
   }
 }

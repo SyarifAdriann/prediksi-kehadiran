@@ -12,8 +12,14 @@
   "target_col": "Status_Kehadiran",
   "n_train": 240,
   "n_test": 60,
-  "train_hadir": 189,
-  "train_tidak_hadir": 51,
-  "test_hadir": 47,
-  "test_tidak_hadir": 13
+  "train_hadir": 144,
+  "train_tidak_hadir": 96,
+  "test_hadir": 36,
+  "test_tidak_hadir": 24,
+  "best_params": {
+    "max_depth": null,
+    "min_samples_leaf": 2,
+    "min_samples_split": 5,
+    "n_estimators": 300
+  }
 }

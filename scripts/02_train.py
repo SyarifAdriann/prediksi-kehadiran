@@ -1,34 +1,33 @@
 """
 02_train.py
 -----------
-Tahap KDD: Pemodelan — Training Random Forest Classifier.
+Tahap KDD: Pemodelan — Training Random Forest + GridSearchCV.
 
 Input  : data/processed/dataset_gabungan.csv
 Output : models/random_forest_model.pkl
-
-Jalankan dari root folder skripsi/:
-    python scripts/02_train.py
+         models/split_info.json
+         models/best_params.json
 """
 
 import os
 import json
+import time
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.metrics import accuracy_score, f1_score
 
-# ============================================================
-# KONSTANTA
-# ============================================================
 RANDOM_SEED = 42
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PROC = os.path.join(ROOT, "data", "processed")
 MODEL_DIR = os.path.join(ROOT, "models")
 
-INPUT_CSV = os.path.join(DATA_PROC, "dataset_gabungan.csv")
+INPUT_CSV  = os.path.join(DATA_PROC, "dataset_gabungan.csv")
 OUTPUT_PKL = os.path.join(MODEL_DIR, "random_forest_model.pkl")
 SPLIT_INFO = os.path.join(MODEL_DIR, "split_info.json")
+BEST_PARAMS_JSON = os.path.join(MODEL_DIR, "best_params.json")
 
 FEATURE_COLS = [
     "Jenis_Kelamin",
@@ -39,107 +38,126 @@ FEATURE_COLS = [
     "hadir_event_sebelumnya",
 ]
 TARGET_COL = "Status_Kehadiran"
+TEST_SIZE  = 0.20
 
-TEST_SIZE = 0.20
-
-
-# ============================================================
-# MAIN
-# ============================================================
 
 def main():
     print("=" * 60)
-    print("02_train.py — Training Random Forest Classifier")
+    print("02_train.py — Random Forest + GridSearchCV")
     print("=" * 60)
 
     os.makedirs(MODEL_DIR, exist_ok=True)
 
-    # ----------------------------------------------------------
-    # Load dataset
-    # ----------------------------------------------------------
-    print("\n[STEP 1] Load Dataset")
     df = pd.read_csv(INPUT_CSV)
-    print(f"  Shape: {df.shape}")
+    X  = df[FEATURE_COLS].copy()
+    y  = df[TARGET_COL].copy()
 
-    # Validasi kolom yang dibutuhkan
-    missing = [c for c in FEATURE_COLS + [TARGET_COL] if c not in df.columns]
-    if missing:
-        raise ValueError(f"Kolom tidak ditemukan: {missing}")
+    print(f"\n  Dataset: {len(df)} rows")
+    print(f"  Hadir (1): {(y==1).sum()} | Tidak Hadir (0): {(y==0).sum()}")
+    print(f"  Hadir %: {(y==1).mean()*100:.1f}%")
 
-    X = df[FEATURE_COLS].copy()
-    y = df[TARGET_COL].copy()
-
-    print(f"  Fitur  : {FEATURE_COLS}")
-    print(f"  Target : {TARGET_COL}")
-    print(f"  Distribusi target:")
-    vc = y.value_counts()
-    for val, cnt in vc.items():
-        label = "Hadir" if val == 1 else "Tidak Hadir"
-        print(f"    {label} ({val}): {cnt} ({cnt/len(y)*100:.1f}%)")
-
-    # ----------------------------------------------------------
-    # Train-Test Split
-    # ----------------------------------------------------------
-    print(f"\n[STEP 2] Train-Test Split (80/20, stratified, seed={RANDOM_SEED})")
+    # ── Train / Test Split ─────────────────────────────────────
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
         test_size=TEST_SIZE,
         random_state=RANDOM_SEED,
         stratify=y
     )
-    print(f"  Training set : {len(X_train)} baris")
-    print(f"  Test set     : {len(X_test)} baris")
-    print(f"  Train — Hadir: {(y_train==1).sum()} | Tidak Hadir: {(y_train==0).sum()}")
-    print(f"  Test  — Hadir: {(y_test==1).sum()}  | Tidak Hadir: {(y_test==0).sum()}")
+    print(f"\n  Train: {len(X_train)} | Test: {len(X_test)}")
+    print(f"  Train Hadir: {(y_train==1).sum()} | Tidak Hadir: {(y_train==0).sum()}")
+    print(f"  Test  Hadir: {(y_test==1).sum()}  | Tidak Hadir: {(y_test==0).sum()}")
 
-    # ----------------------------------------------------------
-    # Training
-    # ----------------------------------------------------------
-    print(f"\n[STEP 3] Training RandomForestClassifier")
-    print(f"  Parameters: n_estimators=100, random_state={RANDOM_SEED}, class_weight='balanced'")
-    model = RandomForestClassifier(
-        n_estimators=100,
-        random_state=RANDOM_SEED,
+    # ── GridSearchCV ───────────────────────────────────────────
+    print("\n[STEP 1] GridSearchCV — mencari hyperparameter terbaik...")
+    print("  (Ini bisa memakan 1-3 menit, harap tunggu...)")
+
+    param_grid = {
+        "n_estimators":      [100, 200, 300],
+        "max_depth":         [None, 10, 20, 30],
+        "min_samples_split": [2, 5, 10],
+        "min_samples_leaf":  [1, 2, 4],
+    }
+
+    base_rf = RandomForestClassifier(
         class_weight="balanced",
+        random_state=RANDOM_SEED,
+        n_jobs=-1,
     )
-    model.fit(X_train, y_train)
-    print(f"  Training selesai. n_classes = {model.n_classes_}")
-    print(f"  Classes: {model.classes_}")
 
-    # ----------------------------------------------------------
-    # Simpan model
-    # ----------------------------------------------------------
-    print(f"\n[STEP 4] Simpan Model")
-    joblib.dump(model, OUTPUT_PKL)
-    print(f"  Saved: {OUTPUT_PKL}")
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)
 
-    # Simpan split info (untuk dipakai oleh 03_evaluate.py)
-    split_info = {
+    grid_search = GridSearchCV(
+        estimator=base_rf,
+        param_grid=param_grid,
+        scoring="f1_macro",       # optimize for balanced class performance
+        cv=cv,
+        n_jobs=-1,
+        verbose=1,
+        refit=True,
+    )
+
+    t0 = time.time()
+    grid_search.fit(X_train, y_train)
+    elapsed = time.time() - t0
+
+    best_params = grid_search.best_params_
+    best_cv_score = grid_search.best_score_
+
+    print(f"\n  GridSearchCV done in {elapsed:.1f}s")
+    print(f"  Best CV F1-macro : {best_cv_score:.4f}")
+    print(f"  Best params      : {best_params}")
+
+    # Save best params
+    best_params_out = {
+        "best_params": best_params,
+        "best_cv_f1_macro": round(float(best_cv_score), 4),
+        "grid_search_elapsed_s": round(elapsed, 1),
+        "class_weight": "balanced",
+        "random_state": RANDOM_SEED,
         "test_size": TEST_SIZE,
-        "random_seed": RANDOM_SEED,
-        "feature_cols": FEATURE_COLS,
-        "target_col": TARGET_COL,
-        "n_train": len(X_train),
-        "n_test": len(X_test),
-        "train_hadir": int((y_train == 1).sum()),
+        "scoring": "f1_macro",
+        "cv_folds": 5,
+    }
+    with open(BEST_PARAMS_JSON, "w") as f:
+        json.dump(best_params_out, f, indent=2)
+    print(f"  Saved: {BEST_PARAMS_JSON}")
+
+    # ── Final Model (best estimator already refitted on full train) ──
+    print("\n[STEP 2] Model final dengan parameter terbaik...")
+    model = grid_search.best_estimator_
+
+    # Quick sanity check on test set
+    y_pred_test = model.predict(X_test)
+    test_acc    = accuracy_score(y_test, y_pred_test)
+    test_f1     = f1_score(y_test, y_pred_test, average="macro")
+    test_f1_tidak = f1_score(y_test, y_pred_test, pos_label=0, average="binary")
+
+    print(f"  Test Accuracy   : {test_acc*100:.2f}%")
+    print(f"  Test F1-macro   : {test_f1*100:.2f}%")
+    print(f"  Test F1 Tidak Hadir: {test_f1_tidak*100:.2f}%")
+
+    # ── Save model & split info ────────────────────────────────
+    joblib.dump(model, OUTPUT_PKL)
+    print(f"\n  Saved model: {OUTPUT_PKL}")
+
+    split_info = {
+        "test_size":         TEST_SIZE,
+        "random_seed":       RANDOM_SEED,
+        "feature_cols":      FEATURE_COLS,
+        "target_col":        TARGET_COL,
+        "n_train":           int(len(X_train)),
+        "n_test":            int(len(X_test)),
+        "train_hadir":       int((y_train == 1).sum()),
         "train_tidak_hadir": int((y_train == 0).sum()),
-        "test_hadir": int((y_test == 1).sum()),
-        "test_tidak_hadir": int((y_test == 0).sum()),
+        "test_hadir":        int((y_test  == 1).sum()),
+        "test_tidak_hadir":  int((y_test  == 0).sum()),
+        "best_params":       best_params,
     }
     with open(SPLIT_INFO, "w") as f:
         json.dump(split_info, f, indent=2)
-    print(f"  Saved: {SPLIT_INFO}")
+    print(f"  Saved split_info: {SPLIT_INFO}")
 
-    # ----------------------------------------------------------
-    # Quick accuracy check
-    # ----------------------------------------------------------
-    train_acc = model.score(X_train, y_train)
-    test_acc = model.score(X_test, y_test)
-    print(f"\n[STEP 5] Quick Accuracy Check")
-    print(f"  Training accuracy : {train_acc:.4f} ({train_acc*100:.2f}%)")
-    print(f"  Test accuracy     : {test_acc:.4f} ({test_acc*100:.2f}%)")
-
-    print("\n[OK] Training selesai. Jalankan 03_evaluate.py untuk evaluasi lengkap.\n")
+    print("\n[OK] Training selesai.\n")
 
 
 if __name__ == "__main__":
