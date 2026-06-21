@@ -17,9 +17,9 @@
   "test_hadir": 36,
   "test_tidak_hadir": 24,
   "best_params": {
-    "max_depth": null,
-    "min_samples_leaf": 2,
+    "max_depth": 10,
+    "min_samples_leaf": 1,
     "min_samples_split": 5,
-    "n_estimators": 300
+    "n_estimators": 100
   }
 }
