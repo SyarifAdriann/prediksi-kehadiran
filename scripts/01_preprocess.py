@@ -1,7 +1,7 @@
 """
 01_preprocess.py
 ----------------
-Tahap KDD: Data Selection, Cleaning, Transformasi, Feature Engineering.
+Tahap KDD: Seleksi Data, Pembersihan, Transformasi, Feature Engineering.
 
 Input  : data/raw/event1_raw.xlsx
          data/raw/event2_raw.xlsx
@@ -63,7 +63,7 @@ KECAMATAN_COORDS = {
 # ============================================================
 
 def haversine_km(lat1, lon1, lat2, lon2):
-    """Hitung jarak (km) antara dua titik koordinat."""
+    """Hitung jarak (km) antara dua titik koordinat menggunakan rumus Haversine."""
     R = 6371.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
@@ -75,13 +75,13 @@ def haversine_km(lat1, lon1, lat2, lon2):
 
 def parse_jarak(val):
     """
-    Parse string Jarak yang tidak konsisten menjadi float (km).
+    Ubah string Jarak yang tidak konsisten menjadi float (km).
     Contoh:
       '12 KM'   -> 12.0
       '400 M'   -> 0.4
       '2.5 KM'  -> 2.5
       '13,8 KM' -> 13.8  (koma sebagai desimal)
-      '4.5 KM ' -> 4.5   (trailing space)
+      '4.5 KM ' -> 4.5   (spasi di akhir)
     """
     if val is None or (isinstance(val, float) and math.isnan(val)):
         return None
@@ -103,7 +103,7 @@ def parse_jarak(val):
 
 
 def standardize_kecamatan(val):
-    """Standardisasi nama Kecamatan."""
+    """Standardisasi ejaan nama Kecamatan agar konsisten di seluruh dataset."""
     if not isinstance(val, str):
         return val
     v = val.strip()
@@ -129,7 +129,7 @@ def standardize_kecamatan(val):
 
 
 def standardize_kab(val):
-    """Standardisasi nama Kabupaten/Kota."""
+    """Standardisasi ejaan nama Kabupaten/Kota agar konsisten di seluruh dataset."""
     if not isinstance(val, str):
         return val
     v = val.strip().lower()
@@ -159,7 +159,7 @@ def standardize_kab(val):
 
 
 def standardize_prov(val):
-    """Standardisasi nama Provinsi."""
+    """Standardisasi ejaan nama Provinsi agar konsisten di seluruh dataset."""
     if not isinstance(val, str):
         return val
     v = val.strip().lower()
@@ -180,7 +180,7 @@ def correct_jarak_outliers(df):
     """
     Koreksi nilai Jarak yang tidak masuk akal:
     Jika jarak tercatat > 3x jarak referensi kecamatan DAN > 10 km lebih besar,
-    ganti dengan jarak referensi ± variasi kecil.
+    ganti dengan jarak referensi ditambah variasi kecil secara acak.
     """
     np.random.seed(RANDOM_SEED)
     corrected = []
@@ -206,7 +206,7 @@ def correct_jarak_outliers(df):
 # ============================================================
 
 def load_event(filepath, event_id):
-    """Load satu file Excel event, bersihkan, dan tambahkan Event_ID."""
+    """Muat satu file Excel event, bersihkan datanya, dan tambahkan kolom Event_ID."""
     print(f"\n  Loading Event {event_id}: {os.path.basename(filepath)}")
     df = pd.read_excel(filepath, header=2)
 
@@ -282,9 +282,10 @@ def load_event(filepath, event_id):
 def engineer_hadir_event_sebelumnya(df):
     """
     Buat fitur 'hadir_event_sebelumnya':
-    - Untuk baris Event 1: selalu 0 (belum ada riwayat)
-    - Untuk baris Event 2: 1 jika peserta yang sama hadir di Event 1, 0 jika tidak hadir atau tidak ada
-    Matching berdasarkan nama (ID ANGGOTA), case-insensitive, strip.
+    - Untuk baris Event 1: selalu 0 (belum ada riwayat kehadiran sebelumnya)
+    - Untuk baris Event 2: bernilai 1 jika peserta yang sama hadir di Event 1,
+      bernilai 0 jika tidak hadir atau tidak terdaftar di Event 1
+    Pencocokan dilakukan berdasarkan ID ANGGOTA, tidak bergantung huruf besar/kecil.
     """
     df = df.copy()
 
@@ -324,8 +325,8 @@ def engineer_hadir_event_sebelumnya(df):
 
 def encode_features(df):
     """
-    Label encoding fitur kategorik:
-      Jenis Kelamin:     Perempuan=0, Laki-laki=1
+    Label encoding untuk fitur kategorik:
+      Jenis Kelamin:      Perempuan=0, Laki-laki=1
       Status Pendaftaran: Terdaftar=1, Tidak Terdaftar=0
       Status Kehadiran (target): Hadir=1, Tidak Hadir=0
     """
@@ -405,19 +406,19 @@ def main():
     # ----------------------------------------------------------
     print("\n[STEP 5] Seleksi Kolom Final")
 
-    # Kolom referensi (tidak masuk model, dipertahankan untuk traceability)
+    # Kolom referensi (tidak digunakan sebagai fitur model, dipertahankan untuk keterlacakan data)
     ref_cols = ["ID ANGGOTA", "Jenis Kelamin", "Status Pendaftaran",
                 "Status Kehadiran", "Jarak", "Kecamatan",
                 "Kabupaten/Kota", "Provinsi", "Desa/Kelurahan",
                 "Alamat tempat tinggal"]
 
-    # Kolom model
+    # Kolom fitur model
     model_cols = ["Jenis_Kelamin", "Usia", "Jarak_km",
                   "Status_Pendaftaran", "Event_ID",
                   "hadir_event_sebelumnya", "Status_Kehadiran"]
 
     final_cols = ref_cols + model_cols
-    # Hanya ambil yang ada
+    # Ambil hanya kolom yang benar-benar ada di DataFrame
     final_cols = [c for c in final_cols if c in df.columns]
     df_final = df[final_cols].copy()
 

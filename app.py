@@ -1,5 +1,5 @@
 """
-app.py Ã¢â‚¬â€ Aplikasi Streamlit: Prediksi Kehadiran Anggota
+app.py — Aplikasi Streamlit: Prediksi Kehadiran Anggota
 PT Cahaya Ladara Nusantara
 
 Jalankan dari root folder skripsi/:
@@ -43,7 +43,7 @@ IMG_FI = os.path.join(ROOT, "outputs", "feature_importance.png")
 IMG_DK   = os.path.join(ROOT, "outputs", "distribusi_kehadiran.png")
 LOGO_PATH = os.path.join(ROOT, "logo.png")
 
-# Detect environment: local machine vs Streamlit Cloud (/mount/src only exists on Cloud)
+# Deteksi environment: lokal vs Streamlit Cloud (/mount/src hanya ada di Cloud)
 IS_LOCAL = not os.path.exists('/mount/src')
 LOG_JSON = os.path.join(ROOT, "pred_log.json")
 

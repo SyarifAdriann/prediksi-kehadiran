@@ -16,7 +16,7 @@ Catatan:
   - Nama yang persis sama di Event 1 dan Event 2 mendapat kode yang sama,
     sehingga fitur hadir_event_sebelumnya tetap terhitung benar.
 
-Jalankan dari root folder skripsi v2/:
+Jalankan dari root folder skripsi/:
     python scripts/00_anonymize.py
 """
 
@@ -32,22 +32,22 @@ FILE_E1 = os.path.join(DATA_RAW, "event1_raw.xlsx")
 FILE_E2 = os.path.join(DATA_RAW, "event2_raw.xlsx")
 MAPPING_CSV = os.path.join(DATA_PROC, "anon_mapping.csv")
 
-HEADER_ROW = 2   # 0-indexed row that contains column names (same as 01_preprocess.py)
+HEADER_ROW = 2   # Baris ke-2 (0-indexed) berisi nama kolom, sama dengan 01_preprocess.py
 
 
 def load_raw(filepath):
-    """Load raw Excel preserving the full file structure."""
-    # Read full file without skipping rows (to detect skip rows later)
+    """Muat file Excel mentah dengan mempertahankan seluruh struktur file."""
+    # Baca file penuh tanpa melewati baris apa pun
     df_full = pd.read_excel(filepath, header=None)
-    # The actual header is at row index HEADER_ROW
+    # Header kolom sebenarnya ada di baris HEADER_ROW
     return df_full
 
 
 def get_names_from_file(filepath):
-    """Extract all 'ID ANGGOTA' values from a raw Excel file."""
+    """Ambil semua nilai kolom 'ID ANGGOTA' dari file Excel mentah."""
     df = pd.read_excel(filepath, header=HEADER_ROW)
     df.columns = df.columns.str.strip()
-    # Drop rows where ID ANGGOTA is entirely NaN / not a valid string
+    # Hapus baris yang ID ANGGOTA-nya kosong atau NaN
     names = df["ID ANGGOTA"].dropna().astype(str).str.strip()
     names = names[names.str.len() > 0]
     return names.tolist()
@@ -55,27 +55,28 @@ def get_names_from_file(filepath):
 
 def build_mapping(names_e1, names_e2):
     """
-    Build a deterministic name → code mapping.
+    Bangun tabel mapping nama → kode secara deterministik.
 
-    Keys are normalised (lowercase + stripped) for case-insensitive matching.
-    Codes are zero-padded sequential integers: P001, P002, ...
-    Alphabetical order across the combined unique-name pool.
+    Kunci dinormalisasi (huruf kecil + strip) agar pencocokan tidak
+    bergantung pada huruf besar/kecil (case-insensitive).
+    Kode berupa bilangan bulat berurutan dengan zero-padding: P001, P002, ...
+    Urutan ditentukan secara alfabetis dari kumpulan nama gabungan kedua event.
     """
-    # Collect all unique raw names (preserve original casing for display)
-    seen_lower = {}   # lower_key → first_seen_original_casing
+    # Kumpulkan semua nama unik (pertahankan huruf asli untuk tampilan)
+    seen_lower = {}   # kunci_lowercase → penulisan_asli_pertama_ditemukan
 
     for name in names_e1 + names_e2:
         key = name.strip().lower()
         if key not in seen_lower:
             seen_lower[key] = name.strip()
 
-    # Sort by normalised key (alphabetical, case-insensitive)
+    # Urutkan berdasarkan kunci yang dinormalisasi (alfabetis, case-insensitive)
     sorted_keys = sorted(seen_lower.keys())
 
-    width = max(3, len(str(len(sorted_keys))))   # at least 3 digits → P001
+    width = max(3, len(str(len(sorted_keys))))   # minimal 3 digit → P001
 
-    mapping_lower = {}    # normalised → code   (used for fast lookup)
-    mapping_display = {}  # original casing → code  (for CSV)
+    mapping_lower = {}    # kunci_normal → kode   (untuk pencarian cepat)
+    mapping_display = {}  # penulisan_asli → kode  (untuk CSV)
 
     for idx, key in enumerate(sorted_keys, start=1):
         code = f"P{str(idx).zfill(width)}"
@@ -88,23 +89,23 @@ def build_mapping(names_e1, names_e2):
 
 def anonymize_file(filepath, mapping_lower):
     """
-    Replace 'ID ANGGOTA' column in an Excel file with anonymised codes.
-    All other columns and rows are preserved exactly.
-    Returns a pandas ExcelWriter-compatible DataFrame list:
-    (header_rows_df, data_df) so the header rows above the table are kept.
+    Ganti kolom 'ID ANGGOTA' dalam file Excel dengan kode anonim.
+    Semua kolom dan baris lain dipertahankan persis seperti aslinya.
+    Mengembalikan DataFrame mentah (tanpa parsing header) yang sudah
+    dimodifikasi, siap ditulis ulang ke Excel.
     """
-    # Read the full raw file as a plain dataframe (no header parsing)
+    # Baca file Excel penuh tanpa parsing header
     raw = pd.read_excel(filepath, header=None)
 
-    # The actual data starts at row HEADER_ROW (0-indexed)
-    # Rows 0 .. HEADER_ROW-1 are metadata/title rows → keep as-is
-    # Row HEADER_ROW is the column header row
-    # Rows HEADER_ROW+1 .. end are data
+    # Data sebenarnya dimulai di baris HEADER_ROW (0-indexed)
+    # Baris 0 .. HEADER_ROW-1 adalah baris judul/metadata → biarkan
+    # Baris HEADER_ROW adalah baris nama kolom
+    # Baris HEADER_ROW+1 .. akhir adalah data
 
     header_row_idx = HEADER_ROW
     col_header = raw.iloc[header_row_idx].tolist()
 
-    # Find the column index for 'ID ANGGOTA'
+    # Cari indeks kolom 'ID ANGGOTA'
     id_col_idx = None
     for i, h in enumerate(col_header):
         if isinstance(h, str) and h.strip() == "ID ANGGOTA":
@@ -112,18 +113,18 @@ def anonymize_file(filepath, mapping_lower):
             break
 
     if id_col_idx is None:
-        raise ValueError(f"'ID ANGGOTA' column not found in {filepath}. Headers: {col_header}")
+        raise ValueError(f"Kolom 'ID ANGGOTA' tidak ditemukan di {filepath}. Header: {col_header}")
 
-    print(f"    'ID ANGGOTA' is at column index {id_col_idx}")
+    print(f"    Kolom 'ID ANGGOTA' ada di indeks {id_col_idx}")
 
-    # Build replacement: iterate data rows (after header row)
+    # Ganti nilai: iterasi baris data (setelah baris header)
     replaced_count = 0
     not_found = []
 
     for row_idx in range(header_row_idx + 1, len(raw)):
         cell = raw.iat[row_idx, id_col_idx]
         if pd.isna(cell) or str(cell).strip() == "":
-            continue  # leave blank / NaN cells untouched
+            continue  # biarkan sel kosong / NaN tidak diubah
 
         original = str(cell).strip()
         key = original.lower()
@@ -131,20 +132,20 @@ def anonymize_file(filepath, mapping_lower):
 
         if code is None:
             not_found.append(original)
-            # Leave unchanged if not in mapping (shouldn't happen)
+            # Biarkan tidak berubah jika tidak ditemukan di mapping (seharusnya tidak terjadi)
         else:
             raw.iat[row_idx, id_col_idx] = code
             replaced_count += 1
 
     if not_found:
-        print(f"    [WARNING] {len(not_found)} names NOT found in mapping: {set(not_found)}")
+        print(f"    [PERINGATAN] {len(not_found)} nama TIDAK ditemukan di mapping: {set(not_found)}")
 
-    print(f"    Replaced {replaced_count} name cells → anonymous codes")
+    print(f"    Berhasil mengganti {replaced_count} sel nama menjadi kode anonim")
     return raw
 
 
 def save_df_to_excel(df, filepath):
-    """Write dataframe back to Excel without index or header (raw format preserved)."""
+    """Tulis DataFrame kembali ke Excel tanpa index atau header (format mentah dipertahankan)."""
     with pd.ExcelWriter(filepath, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, header=False)
     print(f"    Saved: {filepath}")
@@ -157,14 +158,14 @@ def main():
 
     os.makedirs(DATA_PROC, exist_ok=True)
 
-    # ── Step 1: Collect all names from both events ────────────
+    # ── Langkah 1: Kumpulkan semua nama dari kedua event ────────
     print("\n[STEP 1] Membaca nama dari kedua file Excel...")
     names_e1 = get_names_from_file(FILE_E1)
     names_e2 = get_names_from_file(FILE_E2)
     print(f"    Event 1: {len(names_e1)} baris nama")
     print(f"    Event 2: {len(names_e2)} baris nama")
 
-    # ── Step 2: Build mapping ─────────────────────────────────
+    # ── Langkah 2: Bangun tabel mapping ─────────────────────────
     print("\n[STEP 2] Membangun tabel mapping nama → kode...")
     mapping_lower, mapping_display = build_mapping(names_e1, names_e2)
     print(f"    Total nama unik: {len(mapping_lower)}")
@@ -173,7 +174,7 @@ def main():
         print(f"      '{orig}' → {code}")
     print(f"      ...")
 
-    # ── Step 3: Save mapping CSV ──────────────────────────────
+    # ── Langkah 3: Simpan mapping ke CSV ───────────────────────
     print("\n[STEP 3] Menyimpan tabel mapping...")
     mapping_rows = [{"nama_asli": orig, "kode_anonim": code}
                     for orig, code in sorted(mapping_display.items())]
@@ -181,18 +182,18 @@ def main():
     mapping_df.to_csv(MAPPING_CSV, index=False, encoding="utf-8-sig")
     print(f"    Saved: {MAPPING_CSV} ({len(mapping_df)} baris)")
 
-    # ── Step 4: Anonymize Event 1 ─────────────────────────────
+    # ── Langkah 4: Anonimkan Event 1 ────────────────────────────
     print("\n[STEP 4] Anonymisasi event1_raw.xlsx...")
     raw_e1 = anonymize_file(FILE_E1, mapping_lower)
     save_df_to_excel(raw_e1, FILE_E1)
 
-    # ── Step 5: Anonymize Event 2 ─────────────────────────────
+    # ── Langkah 5: Anonimkan Event 2 ────────────────────────────
     print("\n[STEP 5] Anonymisasi event2_raw.xlsx...")
     raw_e2 = anonymize_file(FILE_E2, mapping_lower)
     save_df_to_excel(raw_e2, FILE_E2)
 
-    # ── Step 6: Quick cross-event verification ────────────────
-    print("\n[STEP 6] Verifikasi cross-event consistency...")
+    # ── Langkah 6: Verifikasi konsistensi lintas event ───────────
+    print("\n[STEP 6] Verifikasi konsistensi kode lintas event...")
     anon_e1 = pd.read_excel(FILE_E1, header=HEADER_ROW)
     anon_e2 = pd.read_excel(FILE_E2, header=HEADER_ROW)
     anon_e1.columns = anon_e1.columns.str.strip()
@@ -208,7 +209,7 @@ def main():
     print(f"    Semua kode valid (P-format): "
           f"{all(c.startswith('P') for c in codes_e1 | codes_e2)}")
 
-    # Check no real names remain
+    # Pastikan tidak ada nama asli yang tersisa
     all_codes = codes_e1 | codes_e2
     any_real_name = any(not c.startswith("P") for c in all_codes)
     if any_real_name:

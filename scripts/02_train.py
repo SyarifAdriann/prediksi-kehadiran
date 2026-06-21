@@ -1,7 +1,7 @@
 """
 02_train.py
 -----------
-Tahap KDD: Pemodelan — Training Random Forest + GridSearchCV.
+Tahap KDD: Pemodelan — Pelatihan Random Forest + GridSearchCV.
 
 Input  : data/processed/dataset_gabungan.csv
 Output : models/random_forest_model.pkl
@@ -56,18 +56,18 @@ def main():
     print(f"  Hadir (1): {(y==1).sum()} | Tidak Hadir (0): {(y==0).sum()}")
     print(f"  Hadir %: {(y==1).mean()*100:.1f}%")
 
-    # ── Train / Test Split ─────────────────────────────────────
+    # ── Pembagian Data Latih / Data Uji ──────────────────────────────
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
         test_size=TEST_SIZE,
         random_state=RANDOM_SEED,
         stratify=y
     )
-    print(f"\n  Train: {len(X_train)} | Test: {len(X_test)}")
-    print(f"  Train Hadir: {(y_train==1).sum()} | Tidak Hadir: {(y_train==0).sum()}")
-    print(f"  Test  Hadir: {(y_test==1).sum()}  | Tidak Hadir: {(y_test==0).sum()}")
+    print(f"\n  Latih: {len(X_train)} | Uji: {len(X_test)}")
+    print(f"  Latih Hadir: {(y_train==1).sum()} | Tidak Hadir: {(y_train==0).sum()}")
+    print(f"  Uji   Hadir: {(y_test==1).sum()}  | Tidak Hadir: {(y_test==0).sum()}")
 
-    # ── GridSearchCV ───────────────────────────────────────────
+    # ── GridSearchCV ───────────────────────────────────────────────
     print("\n[STEP 1] GridSearchCV — mencari hyperparameter terbaik...")
     print("  (Ini bisa memakan 1-3 menit, harap tunggu...)")
 
@@ -89,7 +89,7 @@ def main():
     grid_search = GridSearchCV(
         estimator=base_rf,
         param_grid=param_grid,
-        scoring="f1_macro",       # optimize for balanced class performance
+        scoring="f1_macro",       # optimasi untuk performa seimbang antar kelas
         cv=cv,
         n_jobs=-1,
         verbose=1,
@@ -103,11 +103,11 @@ def main():
     best_params = grid_search.best_params_
     best_cv_score = grid_search.best_score_
 
-    print(f"\n  GridSearchCV done in {elapsed:.1f}s")
-    print(f"  Best CV F1-macro : {best_cv_score:.4f}")
-    print(f"  Best params      : {best_params}")
+    print(f"\n  GridSearchCV selesai dalam {elapsed:.1f} detik")
+    print(f"  Skor CV F1-macro terbaik: {best_cv_score:.4f}")
+    print(f"  Parameter terbaik       : {best_params}")
 
-    # Save best params
+    # Simpan parameter terbaik
     best_params_out = {
         "best_params": best_params,
         "best_cv_f1_macro": round(float(best_cv_score), 4),
@@ -120,25 +120,25 @@ def main():
     }
     with open(BEST_PARAMS_JSON, "w") as f:
         json.dump(best_params_out, f, indent=2)
-    print(f"  Saved: {BEST_PARAMS_JSON}")
+    print(f"  Disimpan: {BEST_PARAMS_JSON}")
 
-    # ── Final Model (best estimator already refitted on full train) ──
+    # ── Model Final (estimator terbaik sudah di-refit pada data latih penuh) ──
     print("\n[STEP 2] Model final dengan parameter terbaik...")
     model = grid_search.best_estimator_
 
-    # Quick sanity check on test set
+    # Pengecekan cepat pada data uji
     y_pred_test = model.predict(X_test)
     test_acc    = accuracy_score(y_test, y_pred_test)
     test_f1     = f1_score(y_test, y_pred_test, average="macro")
     test_f1_tidak = f1_score(y_test, y_pred_test, pos_label=0, average="binary")
 
-    print(f"  Test Accuracy   : {test_acc*100:.2f}%")
-    print(f"  Test F1-macro   : {test_f1*100:.2f}%")
-    print(f"  Test F1 Tidak Hadir: {test_f1_tidak*100:.2f}%")
+    print(f"  Akurasi Uji         : {test_acc*100:.2f}%")
+    print(f"  F1-macro Uji        : {test_f1*100:.2f}%")
+    print(f"  F1 Tidak Hadir Uji  : {test_f1_tidak*100:.2f}%")
 
-    # ── Save model & split info ────────────────────────────────
+    # ── Simpan model dan info split ───────────────────────────────────
     joblib.dump(model, OUTPUT_PKL)
-    print(f"\n  Saved model: {OUTPUT_PKL}")
+    print(f"\n  Disimpan model: {OUTPUT_PKL}")
 
     split_info = {
         "test_size":         TEST_SIZE,

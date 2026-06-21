@@ -47,7 +47,7 @@ MODEL_PKL = os.path.join(MODEL_DIR, "random_forest_model.pkl")
 SPLIT_JSON = os.path.join(MODEL_DIR, "split_info.json")
 METRICS_JSON = os.path.join(OUTPUT_DIR, "metrics_summary.json")
 
-# ---- Style ----
+# ---- Gaya tampilan grafik ----
 MONO_DARK = "#1a1a1a"
 MONO_MID = "#555555"
 MONO_LIGHT = "#aaaaaa"
@@ -103,7 +103,7 @@ def main():
     X = df[feature_cols]
     y = df[target_col]
 
-    # Rekonstruksi test set (sama persis dengan 02_train.py)
+    # Rekonstruksi test set (sama persis dengan yang digunakan di 02_train.py)
     _, X_test, _, y_test = train_test_split(
         X, y,
         test_size=test_size,
@@ -151,7 +151,7 @@ def main():
                                 target_names=["Tidak Hadir", "Hadir"],
                                 zero_division=0))
 
-    # Feature importance
+    # Kepentingan fitur (feature importance)
     fi = model.feature_importances_
     fi_dict = dict(zip(feature_cols, fi.tolist()))
     fi_sorted = sorted(fi_dict.items(), key=lambda x: x[1], reverse=True)
@@ -211,10 +211,10 @@ def main():
         json.dump(metrics, f, indent=2, ensure_ascii=False)
     print(f"  Saved: {METRICS_JSON}")
 
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Visualisasi 1: Confusion Matrix
-    # ----------------------------------------------------------
-    print("\n[STEP 5] Generate Charts")
+    # ──────────────────────────────────────────────────────────
+    print("\n[STEP 5] Membuat Grafik...")
 
     fig, ax = plt.subplots(figsize=(6, 5))
     labels = ["Tidak Hadir", "Hadir"]
@@ -234,9 +234,9 @@ def main():
     plt.close()
     print(f"  Saved: {out_cm}")
 
-    # ----------------------------------------------------------
-    # Visualisasi 2: Feature Importance
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
+    # Visualisasi 2: Kepentingan Fitur (Feature Importance)
+    # ──────────────────────────────────────────────────────────
     feat_labels = {
         "Jenis_Kelamin": "Jenis Kelamin",
         "Usia": "Usia",
@@ -250,7 +250,7 @@ def main():
 
     fig, ax = plt.subplots(figsize=(8, 4.5))
     bars = ax.barh(feats[::-1], imps[::-1], color=[MONO_MID] * len(feats), edgecolor=WHITE)
-    # Highlight top bar
+    # Highlight batang teratas
     bars[-1].set_color(MONO_DARK)
     ax.set_xlabel("Tingkat Kepentingan (Importance)", labelpad=10)
     ax.set_title("Feature Importance\nAlgoritma Random Forest", pad=15)
@@ -265,9 +265,9 @@ def main():
     plt.close()
     print(f"  Saved: {out_fi}")
 
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Visualisasi 3: Distribusi Kehadiran per Event
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
 
     for i, ev_id in enumerate([1, 2]):
@@ -292,9 +292,9 @@ def main():
     plt.close()
     print(f"  Saved: {out_dk}")
 
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Visualisasi 4: Distribusi Usia
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(8, 4.5))
     ax.hist(df["Usia"], bins=15, color=MONO_MID, edgecolor=WHITE, linewidth=0.8)
     ax.axvline(df["Usia"].mean(), color=MONO_DARK, linestyle="--", linewidth=1.5,
@@ -309,11 +309,11 @@ def main():
     plt.close()
     print(f"  Saved: {out_usia}")
 
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Visualisasi 5: Distribusi Jarak
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(8, 4.5))
-    # Cap at 25km untuk keterbacaan (outlier jauh tidak terlalu mengganggu)
+    # Di-cap pada 25km agar grafik lebih mudah dibaca (outlier jarak jauh tidak mendominasi)
     jarak_plot = df["Jarak_km"].clip(upper=25)
     ax.hist(jarak_plot, bins=20, color=MONO_MID, edgecolor=WHITE, linewidth=0.8)
     ax.axvline(df["Jarak_km"].median(), color=MONO_DARK, linestyle="--", linewidth=1.5,
@@ -328,9 +328,9 @@ def main():
     plt.close()
     print(f"  Saved: {out_jarak}")
 
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     # Ringkasan
-    # ----------------------------------------------------------
+    # ──────────────────────────────────────────────────────────
     print("\n" + "=" * 60)
     print("RINGKASAN EVALUASI MODEL")
     print("=" * 60)
