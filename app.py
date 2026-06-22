@@ -433,7 +433,7 @@ div[data-baseweb="input"]:focus-within > div {
     box-shadow: 0 0 0 3px rgba(37,99,168,0.15) !important;
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Expander Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* Ã¢â€ â‚¬Ã¢â€ â‚¬ Expander Ã¢â€ â‚¬Ã¢â€ â‚¬ */
 [data-testid="stExpander"] {
     background: #ffffff;
     border: 1px solid #dde4f0 !important;
@@ -442,7 +442,7 @@ div[data-baseweb="input"]:focus-within > div {
     overflow: hidden;
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Plotly/chart container Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* Ã¢â€ â‚¬Ã¢â€ â‚¬ Plotly/chart container Ã¢â€ â‚¬Ã¢â€ â‚¬ */
 [data-testid="stPlotlyChart"] {
     background: #ffffff;
     border-radius: 10px;
@@ -467,6 +467,78 @@ def _check_login(username: str, password: str) -> bool:
 
 
 if not st.session_state.get("logged_in", False):
+    # Override the global light background → full navy for login page
+    st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0f2040 !important;
+        background-image: radial-gradient(#2563a8 1px, transparent 1px) !important;
+        background-size: 28px 28px !important;
+    }
+    /* Widget labels → white */
+    [data-testid="stWidgetLabel"] p {
+        color: #c8d5e8 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.8px !important;
+        text-transform: uppercase !important;
+        margin-bottom: 6px !important;
+    }
+    /* Input wrapper */
+    div[data-baseweb="input"] > div {
+        border: 2px solid #ffffff !important;
+        border-radius: 8px !important;
+        background-color: #ffffff !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }
+    /* Input text */
+    div[data-baseweb="input"] input {
+        color: #0f2040 !important;
+        font-size: 17px !important;
+        background: transparent !important;
+        caret-color: #0f2040 !important;
+    }
+    /* Placeholder cross-browser support */
+    ::-webkit-input-placeholder {
+        color: #4a6fa5 !important;
+        opacity: 1 !important;
+    }
+    ::-moz-placeholder {
+        color: #4a6fa5 !important;
+        opacity: 1 !important;
+    }
+    :-ms-input-placeholder {
+        color: #4a6fa5 !important;
+        opacity: 1 !important;
+    }
+    ::placeholder {
+        color: #4a6fa5 !important;
+        opacity: 1 !important;
+    }
+    /* Focus state */
+    div[data-baseweb="input"]:focus-within > div {
+        border: 2px solid #6b9ed4 !important;
+        box-shadow: 0 0 0 3px rgba(107,158,212,0.3) !important;
+    }
+    /* Eye icon */
+    div[data-baseweb="input"] button svg { fill: #4a6fa5 !important; }
+    /* Button → white bg, navy text */
+    .stButton > button {
+        background: #ffffff !important;
+        color: #0f2040 !important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.25) !important;
+    }
+    .stButton > button *, .stButton > button p, .stButton > button span {
+        color: #0f2040 !important;
+    }
+    .stButton > button:hover {
+        background: #eef1f8 !important;
+        color: #0f2040 !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.35) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("<br>", unsafe_allow_html=True)
     _, col_login, _ = st.columns([1, 1.4, 1])
 
@@ -482,15 +554,15 @@ if not st.session_state.get("logged_in", False):
             )
 
         st.markdown("""
-        <div style="background:#ffffff;border-radius:16px;
+        <div style="background:#0f2040;border-radius:16px;
                     padding:36px 36px 8px 36px;
-                    box-shadow:0 8px 40px rgba(15,32,64,0.14);
-                    border-top:4px solid #2563a8;margin-bottom:0;">
-            <div style="font-size:21px;font-weight:800;color:#0f2040;
+                    box-shadow:0 8px 40px rgba(0,0,0,0.40);
+                    border-top:4px solid #ffffff;margin-bottom:0;">
+            <div style="font-size:21px;font-weight:800;color:#ffffff;
                         text-align:center;margin-bottom:4px;">
                 Sistem Prediksi Kehadiran
             </div>
-            <div style="font-size:13px;color:#6b7fa0;text-align:center;
+            <div style="font-size:13px;color:#6b9ed4;text-align:center;
                         margin-bottom:24px;font-weight:500;">
                 PT Cahaya Ladara Nusantara &nbsp;|&nbsp; Login Admin
             </div>
@@ -1521,16 +1593,122 @@ with tab_log:
         st.dataframe(df_log, use_container_width=True, hide_index=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        col_dl, col_clr = st.columns([3, 1])
-        with col_dl:
+        col_dl_csv, col_dl_pdf, col_clr = st.columns([3, 3, 1])
+        with col_dl_csv:
             csv_log = df_log.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
             st.download_button(
-                label="Unduh Log Prediksi (CSV)",
+                label="📄  Unduh Log (CSV)",
                 data=csv_log,
                 file_name="log_prediksi.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
+        with col_dl_pdf:
+            def generate_log_pdf(log_data):
+                from fpdf import FPDF
+                pdf = FPDF(orientation="L", unit="mm", format="A4")
+                pdf.set_auto_page_break(auto=True, margin=15)
+                pdf.add_page()
+
+                # ── Header band ──
+                pdf.set_fill_color(15, 32, 64)
+                pdf.rect(0, 0, 297, 28, style="F")
+                pdf.set_text_color(255, 255, 255)
+                pdf.set_font("Helvetica", "B", 14)
+                pdf.set_xy(10, 5)
+                pdf.cell(0, 8, "Log Prediksi Kehadiran", ln=True)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.set_xy(10, 14)
+                pdf.cell(0, 6, "PT Cahaya Ladara Nusantara  |  Sistem Prediksi Kehadiran Anggota", ln=True)
+                pdf.set_text_color(0, 0, 0)
+                pdf.set_xy(10, 33)
+
+                # ── Summary stats ──
+                total_log   = len(log_data)
+                hadir_log   = sum(1 for e in log_data if e["Prediksi"] == "Hadir")
+                tidak_log   = total_log - hadir_log
+                from datetime import datetime as _dt
+                generated_at = _dt.now().strftime("%d %B %Y, %H:%M")
+
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.set_fill_color(238, 241, 248)
+                pdf.set_draw_color(200, 213, 232)
+                for label, val in [
+                    ("Total Prediksi", str(total_log)),
+                    ("Diprediksi Hadir", str(hadir_log)),
+                    ("Diprediksi Tidak Hadir", str(tidak_log)),
+                    ("Dicetak", generated_at),
+                ]:
+                    pdf.cell(55, 9, label + ":", border=1, fill=True)
+                    pdf.set_font("Helvetica", "", 10)
+                    pdf.cell(10, 9, val, border=1, fill=False)
+                    pdf.set_font("Helvetica", "B", 10)
+                    pdf.cell(10, 9, "", border=0)
+                pdf.ln(14)
+
+                # ── Table header ──
+                cols = [
+                    ("No",                    8),
+                    ("Waktu",                 28),
+                    ("Event",                 42),
+                    ("Jenis Kelamin",         24),
+                    ("Usia",                  12),
+                    ("Jarak (km)",            20),
+                    ("Hadir Sebelumnya",      40),
+                    ("Prediksi",              28),
+                    ("Prob. Hadir (%)",       22),
+                    ("Prob. Tdk Hadir (%)",   22),
+                ]
+                pdf.set_font("Helvetica", "B", 8)
+                pdf.set_fill_color(15, 32, 64)
+                pdf.set_text_color(255, 255, 255)
+                pdf.set_draw_color(15, 32, 64)
+                for col_name, col_w in cols:
+                    pdf.cell(col_w, 9, col_name, border=1, fill=True, align="C")
+                pdf.ln()
+
+                # ── Table rows ──
+                pdf.set_font("Helvetica", "", 8)
+                pdf.set_text_color(0, 0, 0)
+                pdf.set_draw_color(200, 213, 232)
+                for i, row in enumerate(log_data):
+                    fill = (i % 2 == 0)
+                    pdf.set_fill_color(248, 250, 255) if fill else pdf.set_fill_color(255, 255, 255)
+                    values = [
+                        (str(i + 1),                                                      8,  "C"),
+                        (str(row.get("Waktu", "")),                                       28, "C"),
+                        (str(row.get("Event", ""))[:35],                                  42, "L"),
+                        (str(row.get("Jenis Kelamin", "")),                               24, "C"),
+                        (str(row.get("Usia", "")),                                        12, "C"),
+                        (str(row.get("Jarak (km)", "")),                                  20, "C"),
+                        (str(row.get("Hadir Sebelumnya", ""))[:38],                       40, "L"),
+                        (str(row.get("Prediksi", "")),                                    28, "C"),
+                        (str(row.get("Prob. Hadir (%)", "")),                             22, "C"),
+                        (str(row.get("Prob. Tidak Hadir (%)", "")),                       22, "C"),
+                    ]
+                    for val, w, align in values:
+                        pdf.cell(w, 8, val, border=1, fill=fill, align=align)
+                    pdf.ln()
+
+                # ── Footer ──
+                pdf.set_y(-15)
+                pdf.set_font("Helvetica", "I", 8)
+                pdf.set_text_color(150, 150, 150)
+                pdf.cell(0, 6, f"Halaman {pdf.page_no()}  |  Digenerate otomatis oleh Sistem Prediksi Kehadiran PT CLN", align="C")
+
+                return bytes(pdf.output())
+
+            if st.button("📑  Generate & Unduh PDF", use_container_width=True, key="log_pdf_btn"):
+                with st.spinner("Membuat PDF log prediksi..."):
+                    pdf_log_bytes = generate_log_pdf(log)
+                st.download_button(
+                    label="⬇️  Unduh Log Prediksi (PDF)",
+                    data=pdf_log_bytes,
+                    file_name="log_prediksi.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="log_pdf_dl_btn",
+                )
         with col_clr:
             if st.button("Hapus Log", use_container_width=True):
                 st.session_state["pred_log"] = []
